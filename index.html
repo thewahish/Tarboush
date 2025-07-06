@@ -1,15 +1,17 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Tarboush Runner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tarboush Runner - Fixed Physics</title>
   <style>
     html, body {
       margin: 0;
       padding: 0;
       overflow: hidden;
       background: linear-gradient(to bottom, #009639 33%, #ffffff 66%, #000000);
+      font-family: Arial, sans-serif;
     }
     canvas {
       display: block;
@@ -20,19 +22,59 @@
     }
     #score {
       position: absolute;
-      top: 10px;
+      top: 15px;
       right: 20px;
       background: #fff;
       color: #111;
-      padding: 8px 15px;
+      padding: 10px 20px;
       font-weight: bold;
-      font-family: sans-serif;
+      border-radius: 25px;
+      font-size: 18px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #instructions {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.9);
+      color: #333;
+      padding: 10px 20px;
       border-radius: 20px;
+      font-weight: bold;
+    }
+    #gameOver {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      display: none;
+    }
+    #restartBtn {
+      padding: 12px 25px;
+      font-size: 16px;
+      background: #009639;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 15px;
     }
   </style>
 </head>
 <body>
   <div id="score">Score: 0</div>
+  <div id="instructions">Press SPACE or TAP to JUMP!</div>
+  <div id="gameOver">
+    <h2>Game Over!</h2>
+    <p>Final Score: <span id="finalScore">0</span></p>
+    <button id="restartBtn">Play Again</button>
+  </div>
   <canvas id="gameCanvas" width="800" height="400"></canvas>
 
   <script>
@@ -40,8 +82,10 @@
     const ctx = canvas.getContext("2d");
 
     let score = 0;
+    let gameRunning = true;
     const ground = 340;
     const gravity = 0.6;
+    let gameSpeed = 4;
 
     let player = {
       x: 100,
@@ -49,34 +93,58 @@
       width: 40,
       height: 60,
       vy: 0,
-      jumping: false
+      jumping: false,
+      onGround: true
     };
 
     let obstacles = [];
     let obstacleTimer = 0;
+    let clouds = [];
+
+    // Initialize clouds
+    function initClouds() {
+      for (let i = 0; i < 3; i++) {
+        clouds.push({
+          x: Math.random() * canvas.width,
+          y: 50 + Math.random() * 80,
+          speed: 0.5 + Math.random() * 0.5
+        });
+      }
+    }
 
     function drawPlayer() {
       const px = player.x;
       const py = player.y;
 
-      // Body
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(px + 8, py + 20, 24, 40);
-
-      // Red stars as buttons
-      ctx.fillStyle = "#d21f3c";
-      for (let i = 0; i < 3; i++) {
+      if (player.jumping) {
+        // Holding green tarboush in hand while jumping
+        ctx.fillStyle = "#009639";
+        ctx.fillRect(px + 28, py + 20, 12, 8);
         ctx.beginPath();
-        ctx.arc(px + 20, py + 30 + i * 10, 3, 0, Math.PI * 2);
+        ctx.arc(px + 34, py + 28, 7, 0, Math.PI);
         ctx.fill();
+        
+        // Tassel
+        ctx.fillStyle = "#FFD700";
+        ctx.beginPath();
+        ctx.arc(px + 38, py + 23, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(px + 37, py + 25, 2, 5);
+      } else {
+        // Wearing green tarboush on head
+        ctx.fillStyle = "#009639";
+        ctx.fillRect(px + 10, py - 2, 20, 10);
+        ctx.beginPath();
+        ctx.arc(px + 20, py + 8, 10, 0, Math.PI);
+        ctx.fill();
+        
+        // Tassel on head
+        ctx.fillStyle = "#FFD700";
+        ctx.beginPath();
+        ctx.arc(px + 28, py + 3, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(px + 27, py + 5, 2, 6);
       }
-
-      // Arms
-      ctx.fillStyle = "#f2c6b4";
-      ctx.beginPath();
-      ctx.arc(px, py + 30, 5, 0, Math.PI * 2);
-      ctx.arc(px + 40, py + 30, 5, 0, Math.PI * 2);
-      ctx.fill();
 
       // Head
       ctx.fillStyle = "#f2c6b4";
@@ -95,77 +163,138 @@
       ctx.fillStyle = "#000";
       ctx.fillRect(px + 15, py + 13, 10, 2);
 
+      // Body (white thobe with red stars - Syrian theme)
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(px + 8, py + 20, 24, 40);
+
+      // Red stars as buttons (Syrian flag theme)
+      ctx.fillStyle = "#d21f3c";
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(px + 20, py + 30 + i * 10, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Arms
+      ctx.fillStyle = "#f2c6b4";
+      ctx.beginPath();
+      if (player.jumping) {
+        ctx.arc(px + 5, py + 25, 5, 0, Math.PI * 2);
+        ctx.arc(px + 35, py + 25, 5, 0, Math.PI * 2);
+      } else {
+        ctx.arc(px, py + 30, 5, 0, Math.PI * 2);
+        ctx.arc(px + 40, py + 30, 5, 0, Math.PI * 2);
+      }
+      ctx.fill();
+
       // Shoes
       ctx.fillStyle = "#000";
       ctx.fillRect(px + 10, py + 60, 7, 4);
       ctx.fillRect(px + 23, py + 60, 7, 4);
-
-      if (player.jumping) {
-        // Holding green tarboush in hand
-        ctx.fillStyle = "#009639";
-        ctx.fillRect(px + 28, py + 20, 10, 8);
-        ctx.beginPath();
-        ctx.arc(px + 33, py + 28, 6, 0, Math.PI);
-        ctx.fill();
-      } else {
-        // Wearing green tarboush on head
-        ctx.fillStyle = "#009639";
-        ctx.fillRect(px + 10, py - 2, 20, 10);
-        ctx.beginPath();
-        ctx.arc(px + 20, py + 8, 10, 0, Math.PI);
-        ctx.fill();
-      }
     }
 
     function drawObstacle(ob) {
-      ctx.fillStyle = "#444";
+      // Draw desert rock obstacle
+      ctx.fillStyle = "#8B4513";
       ctx.beginPath();
-      ctx.arc(ob.x + 15, ground + 15, 15, 0, Math.PI * 2);
+      ctx.ellipse(ob.x + 15, ground + 15, 15, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Rock highlight
+      ctx.fillStyle = "#A0522D";
+      ctx.beginPath();
+      ctx.ellipse(ob.x + 10, ground + 10, 5, 4, 0, 0, Math.PI * 2);
       ctx.fill();
     }
 
+    function drawClouds() {
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      clouds.forEach(cloud => {
+        ctx.beginPath();
+        ctx.arc(cloud.x, cloud.y, 15, 0, Math.PI * 2);
+        ctx.arc(cloud.x + 20, cloud.y, 20, 0, Math.PI * 2);
+        ctx.arc(cloud.x + 40, cloud.y, 15, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
+
     function update() {
+      if (!gameRunning) return;
+
+      // Player physics
       player.vy += gravity;
       player.y += player.vy;
 
+      // Ground collision
       if (player.y >= ground) {
         player.y = ground;
         player.vy = 0;
         player.jumping = false;
+        player.onGround = true;
+      } else {
+        player.onGround = false;
       }
 
-      // Obstacles
+      // Spawn obstacles
       obstacleTimer++;
-      if (obstacleTimer > 100) {
+      if (obstacleTimer > 120 - Math.min(score * 0.1, 40)) {
         obstacles.push({ x: canvas.width });
         obstacleTimer = 0;
       }
 
+      // Update obstacles
       for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= 5;
+        obstacles[i].x -= gameSpeed;
 
-        if (
-          player.x + player.width > obstacles[i].x &&
-          player.x < obstacles[i].x + 30 &&
-          player.y + player.height > ground
-        ) {
-          alert("Game Over! Score: " + score);
-          document.location.reload();
+        // FIXED COLLISION DETECTION - Only check when on ground
+        if (player.onGround &&
+            player.x + player.width > obstacles[i].x &&
+            player.x < obstacles[i].x + 30 &&
+            player.y + player.height > ground) {
+          gameOver();
+          return;
         }
 
-        if (obstacles[i].x < -30) obstacles.splice(i, 1);
+        // Remove obstacles and increase score
+        if (obstacles[i].x < -30) {
+          obstacles.splice(i, 1);
+          score += 10;
+          document.getElementById("score").textContent = "Score: " + score;
+          
+          // Increase speed gradually
+          if (score % 100 === 0) {
+            gameSpeed += 0.3;
+          }
+        }
       }
 
-      score++;
-      document.getElementById("score").textContent = "Score: " + score;
+      // Update clouds
+      clouds.forEach(cloud => {
+        cloud.x -= cloud.speed;
+        if (cloud.x < -60) {
+          cloud.x = canvas.width + 20;
+        }
+      });
     }
 
     function draw() {
+      // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw clouds
+      drawClouds();
 
       // Ground
       ctx.fillStyle = "#b8860b";
       ctx.fillRect(0, ground + 60, canvas.width, 100);
+
+      // Ground line
+      ctx.strokeStyle = "#8B4513";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, ground + 60);
+      ctx.lineTo(canvas.width, ground + 60);
+      ctx.stroke();
 
       // Player
       drawPlayer();
@@ -174,27 +303,63 @@
       obstacles.forEach(drawObstacle);
     }
 
-    function loop() {
+    function gameLoop() {
       update();
       draw();
-      requestAnimationFrame(loop);
+      if (gameRunning) {
+        requestAnimationFrame(gameLoop);
+      }
     }
 
+    function jump() {
+      if (gameRunning && player.onGround) {
+        player.vy = -13;
+        player.jumping = true;
+        player.onGround = false;
+      }
+    }
+
+    function gameOver() {
+      gameRunning = false;
+      document.getElementById("finalScore").textContent = score;
+      document.getElementById("gameOver").style.display = "block";
+    }
+
+    function restart() {
+      gameRunning = true;
+      score = 0;
+      gameSpeed = 4;
+      player.y = ground;
+      player.vy = 0;
+      player.jumping = false;
+      player.onGround = true;
+      obstacles = [];
+      obstacleTimer = 0;
+      document.getElementById("score").textContent = "Score: 0";
+      document.getElementById("gameOver").style.display = "none";
+      gameLoop();
+    }
+
+    // Event listeners
     document.addEventListener("keydown", (e) => {
-      if ((e.code === "Space" || e.code === "ArrowUp") && !player.jumping) {
-        player.vy = -12;
-        player.jumping = true;
+      if ((e.code === "Space" || e.code === "ArrowUp") && gameRunning) {
+        e.preventDefault();
+        jump();
       }
     });
 
-    canvas.addEventListener("click", () => {
-      if (!player.jumping) {
-        player.vy = -12;
-        player.jumping = true;
-      }
+    canvas.addEventListener("click", jump);
+    canvas.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      jump();
     });
 
-    loop();
+    document.getElementById("restartBtn").addEventListener("click", restart);
+
+    // Initialize and start game
+    initClouds();
+    gameLoop();
   </script>
+
 </body>
 </html>
