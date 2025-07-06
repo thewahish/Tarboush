@@ -11,4 +11,4 @@ An endless runner game featuring an Arabian character with a tarboush (fez)
 - Touch controls optimized for phones
 
 ## Play Now
-https://[your-username].github.io/Tarboush/
+https://thewahish.github.io/Tarboush/
