@@ -3,66 +3,109 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Tarboush Runner - Enhanced</title>
+  <title>Tarboush Runner</title>
   <style>
     html, body {
       margin: 0; padding: 0; overflow: hidden;
-      background: linear-gradient(to bottom, #155C36 30%, #ffffff 55%, #111111);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom, #009639 33%, #ffffff 66%, #000000);
     }
-    canvas { display: block; margin: auto; background: #e9dac6; border: 3px solid #444; border-radius: 10px; }
-    #ui { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-    #score { position: absolute; top: 15px; right: 20px; background: #ffffffcc; color: #111; padding: 10px 20px; font-weight: bold; border-radius: 25px; font-size: 18px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); pointer-events: auto; }
-    #powerUp { position: absolute; top: 60px; right: 20px; background: #FFD700; color: #111; padding: 8px 15px; font-weight: bold; border-radius: 20px; font-size: 14px; display: none; animation: pulse 1s infinite; pointer-events: auto; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
-    #instructions { position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); color: #333; padding: 10px 20px; border-radius: 20px; font-weight: bold; pointer-events: auto; z-index: 10; }
-    #gameOver { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 30px; border-radius: 15px; text-align: center; display: none; pointer-events: auto; }
-    #restartBtn { padding: 12px 25px; font-size: 16px; background: #155C36; color: white; border: none; border-radius: 20px; cursor: pointer; margin-top: 15px; }
-    .control-hint { font-size: 12px; margin-top: 5px; opacity: 0.8; }
-    #jumpBtn {
+    canvas {
+      display: block;
+      margin: auto;
+      background: #d2b48c;
+      border: 3px solid #444;
+      border-radius: 10px;
+    }
+    #ui {
       position: absolute;
-      bottom: 20px;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    #score {
+      position: absolute;
+      top: 15px; right: 20px;
+      background: #fff;
+      color: #111;
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 25px;
+      font-size: 18px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+      pointer-events: none;
+    }
+    #gameOver {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.9);
+      color: white;
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      display: none;
+      pointer-events: auto;
+    }
+    #restartBtn {
+      padding: 12px 25px;
+      font-size: 16px;
+      background: #009639;
+      color: white;
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    #jumpButton {
+      position: absolute;
+      bottom: 30px;
       left: 50%;
       transform: translateX(-50%);
       width: 80px;
       height: 80px;
-      background: #155C36;
-      border: 3px solid #fff;
       border-radius: 50%;
+      background: #009639;
       color: white;
-      font-size: 16px;
+      font-size: 20px;
       font-weight: bold;
-      text-align: center;
-      line-height: 80px;
+      border: 2px solid white;
       box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-      z-index: 20;
       pointer-events: auto;
-      cursor: pointer;
     }
   </style>
 </head>
 <body>
+  <canvas id="gameCanvas" width="800" height="400"></canvas>
   <div id="ui">
     <div id="score">Score: 0</div>
-    <div id="powerUp">🛡️ Shield Active!</div>
-    <div id="instructions">
-      SPACE/TAP: Jump | DOWN/SWIPE DOWN: Duck
-      <div class="control-hint">Avoid rocks, jump over cacti, duck under birds!</div>
-    </div>
     <div id="gameOver">
       <h2>Game Over!</h2>
       <p>Final Score: <span id="finalScore">0</span></p>
       <p>Best Score: <span id="bestScore">0</span></p>
       <button id="restartBtn">Play Again</button>
     </div>
-    <div id="jumpBtn">JUMP</div>
+    <button id="jumpButton">JUMP</button>
   </div>
-  <canvas id="gameCanvas" width="800" height="400"></canvas>
   <script>
-    const jumpButton = document.getElementById("jumpBtn");
-    jumpButton.addEventListener("click", () => {
-      if (gameRunning) jump();
+    let gameRunning = true;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function gameLoop() {
+      if (!gameRunning) return;
+      // Placeholder logic
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#000";
+      ctx.fillText("Tarboush Runner (Placeholder Frame)", 200, 200);
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.getElementById("jumpButton").addEventListener("click", () => {
+      if (!gameRunning) return;
+      console.log("Jump!");
     });
+
+    gameLoop();
   </script>
 </body>
 </html>
