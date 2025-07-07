@@ -64,49 +64,58 @@
     #ui-container { justify-content: center; align-items: center; pointer-events: none; }
     .action-button { justify-content: center; align-items: center; pointer-events: auto; }
     #debuggerDisplay { align-items: flex-start; text-align: left; }
-    #characterSelectScreen { flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
-    #gameOver { text-align: center; padding: 30px; }
+    #characterSelectScreen { flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding-top: 50px; } /* Adjusted padding-top for title */
+    #gameOver { display: flex; justify-content: center; align-items: center; pointer-events: auto; z-index: 200; } /* Make game over screen a flex container to center its content */
     #score { /* No specific flex/block needed here, it's inside #ui-container */ }
     canvas { /* No specific flex/block needed here, it's inside .game-container */ }
 
 
-    #characterSelectScreen h2 {
-        font-size: 2.2em; margin-bottom: 20px; color: var(--revolutionary-red);
+    /* --- Character Select Screen Styling --- */
+    #characterSelectScreen h1 { /* Game Title */
+        font-size: 2.5em; margin-bottom: 20px; color: var(--syrian-black);
+    }
+    #characterSelectScreen h2 { /* Choose your character */
+        font-size: 1.8em; margin-bottom: 30px; color: var(--revolutionary-red);
     }
     .character-grid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 15px;
+        display: flex; /* Changed to flex for vertical list */
+        flex-direction: column; /* Stack items vertically */
+        align-items: center; /* Center items horizontally */
+        gap: 15px; /* Spacing between list items */
         margin-bottom: 30px;
-        max-width: 300px; /* Limit grid width */
-        margin-left: auto; /* Center grid */
-        margin-right: auto;
+        max-width: 300px; /* Max width for each item */
+        width: 90%; /* Occupy most of the width */
     }
     .character-slot {
-        background: rgba(0,0,0,0.5); border-radius: 10px; padding: 15px;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        color: var(--syrian-white); font-weight: bold; font-size: 0.9em;
-        text-align: center;
+        background: rgba(0,0,0,0.5); border-radius: 15px; padding: 15px; /* More padding, rounded corners */
+        display: flex; /* Flex for content inside slot */
+        align-items: center; /* Vertically align image and text */
+        width: 100%; /* Take full width of grid */
+        color: var(--syrian-white); font-weight: bold; font-size: 1.1em; /* Increased font size */
         box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         transition: background-color 0.3s ease, transform 0.1s ease;
+        text-align: left; /* Align text inside slot to left */
+        cursor: default; /* Default cursor for non-clickable */
     }
     .character-slot.available {
         background: var(--syrian-green); cursor: pointer;
     }
-    .character-slot.available:hover, .character-slot.selected { /* Added selected state */
+    .character-slot.available:hover, .character-slot.selected {
         transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-        background: var(--revolutionary-red); /* Highlight selected char */
+        background: var(--revolutionary-red);
     }
     .character-slot.grayed-out {
         background: #555; opacity: 0.7;
     }
     .character-slot img {
-        width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--syrian-white); margin-bottom: 8px;
+        width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--syrian-white);
+        margin-right: 15px; /* Space between image and text */
+        flex-shrink: 0; /* Prevent image from shrinking */
     }
     .character-slot.grayed-out img {
         filter: grayscale(100%); opacity: 0.6;
     }
-    .character-slot p { margin: 0; font-size: 1em; }
+    .character-slot p { margin: 0; flex-grow: 1; } /* Allow text to take remaining space */
     #start-game-btn {
         padding: 15px 30px; font-size: 1.5em; background: var(--revolutionary-red);
         color: var(--syrian-white); border: none; border-radius: 30px; cursor: pointer;
@@ -128,7 +137,7 @@
     #orientation-warning p { font-size: 2em; margin-bottom: 20px; }
 
 
-    /* UI element positioning (relative to its parent container which is full screen) */
+    /* UI element positioning */
     #score {
       position: absolute;
       top: 90px;
@@ -165,13 +174,13 @@
     #duckButton {
       left: 25px;
     }
-    #gameOver {
-      background: var(--ui-gameover-bg);
-      color: var(--ui-text-main);
-      border-radius: 15px;
-      width: 250px;
-      z-index: 200;
-      transition: background-color 0.5s ease, color 0.5s ease;
+    #gameOver-content { /* Content wrapper for dialog inside #gameOver */
+        background: var(--ui-gameover-bg);
+        color: var(--ui-text-main);
+        padding: 30px;
+        border-radius: 15px;
+        width: 250px; /* Fixed width for the dialog content */
+        box-shadow: 0 6px 12px rgba(0,0,0,0.4);
     }
     #gameOver h2 {
         margin-top: 0;
@@ -217,14 +226,15 @@
   </div>
 
   <div id="characterSelectScreen">
-    <h2>اختر شخصيتك</h2> <div class="character-grid">
+    <h1>لحّق إذا بتلحق</h1> <h2>اختر شخصيتك</h2> <div class="character-grid">
       </div>
     <button id="start-game-btn">ابدأ اللعب</button> <p class="coming-soon-text">مزيد من الشخصيات قريباً</p> </div>
 
-  <div id="ui-container">
-    <div id="score">نقاط: 0 ليرة سوري</div> <div id="gameOver">
-      <h2>انتهت اللعبة!</h2> <p>النتيجة النهائية: <span id="finalScore">0</span></p> <p>أفضل نتيجة: <span id="bestScore">0</span></p> <button id="restartBtn">العب مرة أخرى</button> </div>
+  <div id="gameOver">
+    <div id="gameOver-content"> <h2>انتهت اللعبة!</h2> <p>النتيجة النهائية: <span id="finalScore">0</span></p> <p>أفضل نتيجة: <span id="bestScore">0</span></p> <button id="restartBtn">العب مرة أخرى</button> </div>
   </div>
+
+  <div id="ui-container"> <div id="score">نقاط: 0 ليرة سوري</div> </div>
 
   <button id="jumpButton" class="action-button">نط</button> <button id="duckButton" class="action-button">طخّي</button> <div id="debuggerDisplay">Debugger: Initializing...</div>
   
