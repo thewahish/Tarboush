@@ -29,11 +29,11 @@ class Game {
     this.obstaclePatterns = [
         { type: 'single_cactus', minSpeed: 0 },
         { type: 'single_rock', minSpeed: 0 },
-        { type: 'spiky_bush', minSpeed: 3 }, // New low, wide obstacle
+        { type: 'spiky_bush', minSpeed: 3 },
         { type: 'high_bird', minSpeed: 4 },
         { type: 'double_rock', minSpeed: 5 },
-        { type: 'swooping_bird', minSpeed: 6 }, // New moving sky obstacle
-        { type: 'low_missile', minSpeed: 7 } // New low sky obstacle
+        { type: 'swooping_bird', minSpeed: 6 },
+        { type: 'low_missile', minSpeed: 7 }
     ];
 
     this.clouds = this.createClouds();
@@ -75,10 +75,7 @@ class Game {
     const duckStart = () => {
         if (this.gameRunning && !this.player.isDucking) {
             this.player.isDucking = true;
-            // --- GAMEPLAY CHANGE: Mid-air duck causes a fast fall ---
-            if (!this.player.grounded) {
-                this.player.velY += 5; // Apply downward force
-            }
+            if (!this.player.grounded) { this.player.velY += 5; }
         }
     };
     const duckEnd = () => { this.player.isDucking = false; };
@@ -103,28 +100,34 @@ class Game {
   }
 
   setNextSpawnDistance() {
-      const min = 300;
-      const max = 600;
+      // --- GAMEPLAY CHANGE: Reduced distance between obstacles ---
+      const min = 250;
+      const max = 450;
       this.distanceToNextSpawn = Math.floor(Math.random() * (max - min + 1) + min);
   }
 
   spawnObstacles() {
     const availablePatterns = this.obstaclePatterns.filter(p => this.speed >= p.minSpeed);
     const pattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
+    const scoredProp = { scored: false }; // Add property to track if we've scored this obstacle
 
     switch (pattern.type) {
-        case 'single_cactus': this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'cactus' }); break;
-        case 'single_rock': this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'rock' }); break;
-        case 'spiky_bush': this.obstacles.push({ x: this.canvas.width, w: 60, h: 25, type: 'spiky_bush' }); break;
-        case 'high_bird': this.obstacles.push({ x: this.canvas.width, w: 40, h: 30, type: 'bird' }); break;
+        case 'single_cactus': this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'cactus', ...scoredProp }); break;
+        case 'single_rock': this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'rock', ...scoredProp }); break;
+        case 'spiky_bush': this.obstacles.push({ x: this.canvas.width, w: 60, h: 25, type: 'spiky_bush', ...scoredProp }); break;
+        case 'high_bird': this.obstacles.push({ x: this.canvas.width, w: 40, h: 30, type: 'bird', ...scoredProp }); break;
         case 'double_rock':
-            this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'rock' });
-            this.obstacles.push({ x: this.canvas.width + 60, w: 30, h: 50, type: 'rock' });
+            this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'rock', ...scoredProp });
+            this.obstacles.push({ x: this.canvas.width + 60, w: 30, h: 50, type: 'rock', ...scoredProp });
             break;
-        case 'swooping_bird': this.obstacles.push({ x: this.canvas.width, w: 40, h: 30, type: 'swooping_bird', vy: 1 }); break;
-        case 'low_missile': this.obstacles.push({ x: this.canvas.width, w: 50, h: 20, type: 'low_missile' }); break;
+        case 'swooping_bird': this.obstacles.push({ x: this.canvas.width, w: 40, h: 30, type: 'swooping_bird', vy: 1, ...scoredProp }); break;
+        case 'low_missile': this.obstacles.push({ x: this.canvas.width, w: 50, h: 20, type: 'low_missile', ...scoredProp }); break;
     }
     this.setNextSpawnDistance();
+  }
+  
+  updateScoreDisplay() {
+      this.scoreDisplay.textContent = 'Score: ' + this.score;
   }
 
   update() {
@@ -132,43 +135,33 @@ class Game {
     this.distance += this.speed;
 
     if (this.jumpRequested && this.player.grounded) {
-        this.player.velY = -12;
-        this.player.jumping = true;
-        this.player.grounded = false;
-        this.jumpRequested = false;
+        this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
     }
 
-    this.player.velY += 0.6;
-    this.player.y += this.player.velY;
+    this.player.velY += 0.6; this.player.y += this.player.velY;
 
     if (this.player.y >= this.groundY - this.player.height) {
-        this.player.y = this.groundY - this.player.height;
-        this.player.velY = 0;
-        this.player.jumping = false;
-        this.player.grounded = true;
+        this.player.y = this.groundY - this.player.height; this.player.velY = 0;
+        this.player.jumping = false; this.player.grounded = true;
     }
 
     this.speed += 0.001;
-
     if (this.distanceToNextSpawn-- <= 0) this.spawnObstacles();
     
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
         const obs = this.obstacles[i];
         obs.x -= this.speed;
 
-        // Set y position based on type
         if (obs.type === 'bird') obs.y = this.groundY - 80;
         else if (obs.type === 'swooping_bird') {
-            if(!obs.y) obs.y = this.groundY - 150; // Initial position
-            obs.y += obs.vy; // Move downwards
+            if(!obs.y) obs.y = this.groundY - 150; obs.y += obs.vy;
         }
         else if (obs.type === 'low_missile') obs.y = this.groundY - 65;
         else obs.y = this.groundY - obs.h;
         
         const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
         const playerHitbox = {
-            x: this.player.x + hitbox.x_offset,
-            y: this.player.y + hitbox.y_offset,
+            x: this.player.x + hitbox.x_offset, y: this.player.y + hitbox.y_offset,
             width: hitbox.width, height: hitbox.height
         };
       
@@ -177,10 +170,16 @@ class Game {
             this.gameOver();
         }
 
+        // --- SCORING CHANGE: Score 1 point when player passes an obstacle ---
+        if (!obs.scored && obs.x + obs.w < this.player.x) {
+            this.score++;
+            obs.scored = true;
+            this.updateScoreDisplay();
+        }
+
         if (obs.x + obs.w < 0) {
             this.obstacles.splice(i, 1);
-            this.score += 10;
-            this.scoreDisplay.textContent = 'Score: ' + this.score;
+            // Old scoring logic removed from here
         }
     }
 
@@ -189,11 +188,8 @@ class Game {
   }
   
   drawPlayer(px, py) {
-    const ctx = this.ctx;
-    const tarboushColor = '#CE1126';
-    const bodyColor = '#FFFFFF';
-    const skinColor = '#FDBCB4';
-    const detailColor = '#000000';
+    const ctx = this.ctx; const tarboushColor = '#CE1126'; const bodyColor = '#FFFFFF';
+    const skinColor = '#FDBCB4'; const detailColor = '#000000';
 
     if (this.player.isDucking) {
         ctx.fillStyle = bodyColor; ctx.fillRect(px + 6, py + 35, 28, 25);
@@ -265,7 +261,7 @@ class Game {
     this.player.velY = 0; this.player.grounded = true; this.player.isDucking = false;
     this.player.jumping = false; this.jumpRequested = false;
     this.obstacles = []; this.setNextSpawnDistance();
-    this.scoreDisplay.textContent = 'Score: 0';
+    this.updateScoreDisplay();
     this.gameOverScreen.style.display = 'none';
   }
 
