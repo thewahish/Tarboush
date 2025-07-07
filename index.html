@@ -7,84 +7,105 @@
   <style>
     html, body {
       margin: 0; padding: 0; overflow: hidden;
-      background: linear-gradient(to bottom, #009639 33%, #ffffff 66%, #000000);
-      font-family: Arial, sans-serif;
+      background: #DEB887;
+      font-family: 'Helvetica Neue', Arial, sans-serif;
       height: 100%;
       touch-action: manipulation;
     }
+    .game-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
     canvas {
       display: block;
-      margin: auto;
-      background: #f5f5dc;
+      background: #f0f0f0;
       border: 3px solid #444;
       border-radius: 10px;
     }
-    #ui {
+    #ui-container {
       position: absolute;
       top: 0; left: 0;
       width: 100%;
       height: 100%;
       pointer-events: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     #score {
       position: absolute;
       top: 15px;
-      right: 20px;
-      background: #fff;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.8);
       color: #111;
       padding: 10px 20px;
       font-weight: bold;
       border-radius: 25px;
       font-size: 18px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      pointer-events: none;
     }
-    #jumpButton {
+    .action-button {
       position: absolute;
       bottom: 25px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 80px;
-      height: 80px;
-      background: #009639;
+      width: 70px;
+      height: 70px;
       color: white;
       border: 4px solid #fff;
       border-radius: 50%;
-      font-size: 22px;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
       z-index: 100;
       pointer-events: auto;
       box-shadow: 0 0 12px rgba(0,0,0,0.3);
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #jumpButton {
+      right: 25px;
+      background: #DC143C;
+    }
+    #duckButton {
+      left: 25px;
+      background: #1E90FF;
     }
     #gameOver {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      background: rgba(0,0,0,0.9);
+      background: rgba(0,0,0,0.85);
       color: white;
       padding: 30px;
       border-radius: 15px;
       text-align: center;
       display: none;
       pointer-events: auto;
+      width: 250px;
     }
+    #gameOver h2 { margin-top: 0; }
     #restartBtn {
       padding: 12px 25px;
       font-size: 16px;
-      background: #009639;
+      background: #DC143C;
       color: white;
       border: none;
       border-radius: 20px;
       cursor: pointer;
       margin-top: 15px;
+      font-weight: bold;
     }
   </style>
 </head>
 <body>
-  <div id="ui">
+
+  <div class="game-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <div id="ui-container">
     <div id="score">Score: 0</div>
-    <button id="jumpButton">JUMP</button>
     <div id="gameOver">
       <h2>Game Over!</h2>
       <p>Final Score: <span id="finalScore">0</span></p>
@@ -92,147 +113,11 @@
       <button id="restartBtn">Play Again</button>
     </div>
   </div>
-  <canvas id="gameCanvas" width="800" height="400"></canvas>
 
-  <script>
-    let gameRunning = true;
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+  <button id="jumpButton" class="action-button">JUMP</button>
+  <button id="duckButton" class="action-button">DUCK</button>
 
-    const scoreDisplay = document.getElementById("score");
-    const finalScoreDisplay = document.getElementById("finalScore");
-    const bestScoreDisplay = document.getElementById("bestScore");
-    const gameOverScreen = document.getElementById("gameOver");
+  <script src="game.js"></script>
 
-    let score = 0;
-    let bestScore = localStorage.getItem("tarboushBestScore") || 0;
-    let gameSpeed = 4;
-    const ground = 340;
-    const gravity = 0.5;
-
-    const player = {
-      x: 100, y: ground,
-      width: 40, height: 60,
-      vy: 0,
-      jumping: false,
-      onGround: true
-    };
-
-    let obstacles = [];
-    let obstacleTimer = 0;
-
-    function drawPlayer() {
-      ctx.fillStyle = "#ffffff"; // white clothes
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-      ctx.fillStyle = "#000";
-      ctx.fillRect(player.x + 10, player.y + 10, 5, 5); // eye
-
-      // Tarboush
-      ctx.fillStyle = "#009639"; // green tarboush
-      ctx.fillRect(player.x + 10, player.y - 10, 20, 10);
-
-      // Red star buttons
-      ctx.fillStyle = "#d21f3c";
-      for (let i = 0; i < 3; i++) {
-        ctx.beginPath();
-        ctx.arc(player.x + 20, player.y + 20 + i * 10, 3, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-
-    function update() {
-      player.vy += gravity;
-      player.y += player.vy;
-
-      if (player.y >= ground) {
-        player.y = ground;
-        player.vy = 0;
-        player.jumping = false;
-        player.onGround = true;
-      } else {
-        player.onGround = false;
-      }
-
-      obstacleTimer++;
-      if (obstacleTimer > 80) {
-        obstacles.push({ x: canvas.width, y: ground + 30, width: 30, height: 30 });
-        obstacleTimer = 0;
-      }
-
-      for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= gameSpeed;
-
-        if (
-          player.x + player.width > obstacles[i].x &&
-          player.x < obstacles[i].x + obstacles[i].width &&
-          player.y + player.height > obstacles[i].y &&
-          player.y < obstacles[i].y + obstacles[i].height
-        ) {
-          gameOver();
-        }
-
-        if (obstacles[i].x < -obstacles[i].width) {
-          obstacles.splice(i, 1);
-          score += 10;
-          scoreDisplay.textContent = "Score: " + score;
-        }
-      }
-    }
-
-    function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#f5f5dc";
-      ctx.fillRect(0, ground + 60, canvas.width, canvas.height - ground - 60);
-
-      drawPlayer();
-      obstacles.forEach(obs => {
-        ctx.fillStyle = "#8B4513";
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-      });
-    }
-
-    function gameLoop() {
-      if (!gameRunning) return;
-      update();
-      draw();
-      requestAnimationFrame(gameLoop);
-    }
-
-    function jump() {
-      if (player.onGround && !player.jumping) {
-        player.vy = -12;
-        player.jumping = true;
-      }
-    }
-
-    function gameOver() {
-      gameRunning = false;
-      finalScoreDisplay.textContent = score;
-      bestScore = Math.max(score, bestScore);
-      localStorage.setItem("tarboushBestScore", bestScore);
-      bestScoreDisplay.textContent = bestScore;
-      gameOverScreen.style.display = "block";
-    }
-
-    function restart() {
-      gameRunning = true;
-      score = 0;
-      obstacles = [];
-      player.y = ground;
-      player.vy = 0;
-      scoreDisplay.textContent = "Score: 0";
-      gameOverScreen.style.display = "none";
-      gameLoop();
-    }
-
-    document.getElementById("jumpButton").addEventListener("click", jump);
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space" || e.key === "ArrowUp") jump();
-    });
-    document.getElementById("restartBtn").addEventListener("click", restart);
-
-    bestScoreDisplay.textContent = bestScore;
-    gameLoop();
-  </script>
 </body>
 </html>
