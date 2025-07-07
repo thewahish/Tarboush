@@ -77,18 +77,19 @@ class Game {
           }
         };
 
-        // --- NEW: Character Data ---
+        // --- NEW: Character Data (using placeholder.com for image URLs) ---
         this.characters = [
-            { id: 'shami_abu_tarboush', name: 'شامي أبو طربوش', available: true, image: 'https://via.placeholder.com/60/FF0000/FFFFFF?text=ش' }, // Placeholder image
-            { id: 'fatom_hays_bays', name: 'فطوم حيص بيص', available: false, image: 'https://via.placeholder.com/60/0000FF/FFFFFF?text=ف' },
-            { id: 'zulfiqar', name: 'زولفيقار', available: false, image: 'https://via.placeholder.com/60/00FF00/FFFFFF?text=ز' },
-            { id: 'bakri_abu_halab', name: 'بكري أبو حلب', available: false, image: 'https://via.placeholder.com/60/FFFF00/000000?text=ب' },
-            { id: 'warni_warni', name: 'ورني ورني', available: false, image: 'https://via.placeholder.com/60/FF00FF/FFFFFF?text=و' }
+            { id: 'shami_abu_tarboush', name: 'شامي أبو طربوش', available: true, image: 'https://via.placeholder.com/60/CE1126/FFFFFF?text=ش' },
+            { id: 'fatom_hays_bays', name: 'فطوم حيص بيص', available: false, image: 'https://via.placeholder.com/60/007A3D/FFFFFF?text=ف' },
+            { id: 'zulfiqar', name: 'زولفيقار', available: false, image: 'https://via.placeholder.com/60/36454F/FFFFFF?text=ز' },
+            { id: 'bakri_abu_halab', name: 'بكري أبو حلب', available: false, image: 'https://via.placeholder.com/60/A0522D/FFFFFF?text=ب' },
+            { id: 'warni_warni', name: 'ورني ورني', available: false, image: 'https://via.placeholder.com/60/000000/FFFFFF?text=و' }
         ];
         this.selectedCharacterId = 'shami_abu_tarboush'; // Default selected character
 
         this.setupCanvas(); // Sets up canvas dimensions and groundY
 
+        // --- Get all relevant UI elements by ID ---
         this.scoreDisplay = document.getElementById('score');
         if (!this.scoreDisplay) throw new Error("scoreDisplay element not found!");
         this.finalScoreDisplay = document.getElementById('finalScore');
@@ -99,6 +100,20 @@ class Game {
         if (!this.gameOverScreen) throw new Error("gameOverScreen element not found!");
         this.characterSelectScreen = document.getElementById('characterSelectScreen');
         if (!this.characterSelectScreen) throw new Error("characterSelectScreen element not found!");
+        this.gameContainer = document.querySelector('.game-container'); // Get game container for visibility
+        if (!this.gameContainer) throw new Error("Game container element not found!");
+        this.uiContainer = document.getElementById('ui-container'); // Get UI container for visibility
+        if (!this.uiContainer) throw new Error("UI container element not found!");
+        this.jumpButton = document.getElementById('jumpButton');
+        if (!this.jumpButton) throw new Error("jumpButton element not found!");
+        this.duckButton = document.getElementById('duckButton');
+        if (!this.duckButton) throw new Error("duckButton element not found!");
+        this.restartBtn = document.getElementById('restartBtn'); // Get restart button (inside game over)
+        if (!this.restartBtn) throw new Error("restartBtn element not found!");
+        this.startGameBtn = document.getElementById('start-game-btn'); // Get start game button (character select)
+        if (!this.startGameBtn) throw new Error("start-game-btn not found!");
+        this.orientationWarning = document.getElementById('orientation-warning'); // Get orientation warning
+        if (!this.orientationWarning) throw new Error("orientation-warning element not found!");
 
 
         this.obstacles = [];
@@ -214,48 +229,42 @@ class Game {
       }
   }
 
-  // --- NEW: Manages visibility of main game UI and Character Select / Game Over screens ---
+  // --- REFINED: Manages visibility of main game UI and Character Select / Game Over screens ---
   updateUIVisibility() {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       
-      const gameContainer = this.canvas.parentElement; // .game-container
-      const uiContainer = this.scoreDisplay.parentElement; // #ui-container
-      const jumpButton = document.getElementById('jumpButton');
-      const duckButton = document.getElementById('duckButton');
-      const actionButtons = [jumpButton, duckButton];
-      const orientationWarning = document.getElementById('orientation-warning');
-
-      // --- Step 1: Hide everything that JS controls, then selectively show ---
-      gameContainer.style.display = 'none';
-      uiContainer.style.display = 'none';
-      actionButtons.forEach(btn => { if(btn) btn.style.display = 'none'; });
+      // --- Step 1: Hide all main UI containers and screens ---
+      this.gameContainer.style.display = 'none';
+      this.uiContainer.style.display = 'none';
+      this.jumpButton.style.display = 'none';
+      this.duckButton.style.display = 'none';
       this.debuggerDisplay.style.display = 'none';
       this.characterSelectScreen.style.display = 'none';
       this.gameOverScreen.style.display = 'none';
-      orientationWarning.style.display = 'none';
+      this.orientationWarning.style.display = 'none';
 
 
-      // --- Step 2: Show based on Orientation and currentGameState ---
+      // --- Step 2: Show elements based on Orientation and currentGameState ---
       if (isLandscape) {
           // In landscape, we show game or character select or game over
           if (this.currentGameState === 'playing') {
-              gameContainer.style.display = 'flex';
-              uiContainer.style.display = 'flex';
-              actionButtons.forEach(btn => { if(btn) btn.style.display = 'flex'; });
-              this.debuggerDisplay.style.display = 'flex';
-              // game over screen and char select screen remain hidden
+              this.gameContainer.style.display = 'flex'; // Game canvas container
+              this.uiContainer.style.display = 'flex';   // UI container (score, etc.)
+              this.jumpButton.style.display = 'flex';    // Action buttons
+              this.duckButton.style.display = 'flex';
+              this.debuggerDisplay.style.display = 'flex'; // Debugger
+              // Game over screen and char select screen remain hidden
           } else if (this.currentGameState === 'gameOver') {
-              gameContainer.style.display = 'flex'; // Still show background canvas
-              uiContainer.style.display = 'flex'; // To show score and game over dialog
-              actionButtons.forEach(btn => { if(btn) btn.style.display = 'none'; }); // Hide action buttons
+              this.gameContainer.style.display = 'flex'; // Still show background canvas
+              this.uiContainer.style.display = 'flex';   // To show score and game over dialog
               this.gameOverScreen.style.display = 'block'; // Show game over dialog
               this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible
-              // char select remains hidden
+              // Action buttons and char select remain hidden
           } else if (this.currentGameState === 'characterSelect') {
               this.characterSelectScreen.style.display = 'flex'; // Show character select
           }
       } else { // Portrait mode
-          orientationWarning.style.display = 'flex'; // Only show orientation warning
+          this.orientationWarning.style.display = 'flex'; // Only show orientation warning
           // All other game elements remain hidden by initial 'display: none'
       }
   }
@@ -277,6 +286,7 @@ class Game {
           slot.setAttribute('data-char-id', char.id); // Store ID for selection
 
           // Placeholder images using placeholder.com for now
+          // You can replace these with actual image paths later
           const charImageHtml = `<img src="${char.image}" alt="${char.name}" loading="lazy">`;
           
           slot.innerHTML = `${charImageHtml}<p>${char.name}</p>`;
@@ -300,9 +310,8 @@ class Game {
           characterGrid.appendChild(slot);
       });
 
-      const startGameBtn = document.getElementById('start-game-btn');
-      if (startGameBtn) {
-          startGameBtn.onclick = () => this.startGame(); // Bind to startGame
+      if (this.startGameBtn) {
+          this.startGameBtn.onclick = () => this.startGame(); // Bind to startGame
       } else {
           this.updateDebugger("Error: start-game-btn not found!");
           console.error("Error: start-game-btn not found!");
@@ -350,31 +359,25 @@ class Game {
             if (e.key === 'ArrowDown') { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; }
         });
 
-        const jumpButton = document.getElementById('jumpButton');
-        console.log("[bindEvents DEBUG] jumpButton:", jumpButton);
-        if (jumpButton) {
-            jumpButton.addEventListener('click', () => { if (this.currentGameState === 'playing' && !this.player.isDucking) this.jumpRequested = true; });
-            jumpButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) this.jumpRequested = true; });
+        if (this.jumpButton) {
+            this.jumpButton.addEventListener('click', () => { if (this.currentGameState === 'playing' && !this.player.isDucking) this.jumpRequested = true; });
+            this.jumpButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) this.jumpRequested = true; });
         } else {
             throw new Error("jumpButton not found!");
         }
 
-        const duckButton = document.getElementById('duckButton');
-        console.log("[bindEvents DEBUG] duckButton:", duckButton);
-        if (duckButton) {
-            duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
-            duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; });
-            duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
-            duckButton.addEventListener('touchend', (e) => { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; });
+        if (this.duckButton) {
+            this.duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
+            this.duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; });
+            this.duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.currentGameState === 'playing') { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
+            this.duckButton.addEventListener('touchend', (e) => { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; });
         } else {
             throw new Error("duckButton not found!");
         }
 
-        const restartBtn = document.getElementById('restartBtn');
-        console.log("[bindEvents DEBUG] restartBtn:", restartBtn);
-        if (restartBtn) {
+        if (this.restartBtn) {
             // "Play Again" button now calls startGame
-            restartBtn.addEventListener('click', () => this.startGame()); 
+            this.restartBtn.addEventListener('click', () => this.startGame()); 
         } else {
             throw new Error("restartBtn not found!");
         }
