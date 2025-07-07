@@ -100,9 +100,9 @@ class Game {
   }
 
   setNextSpawnDistance() {
-      // --- GAMEPLAY CHANGE: Reduced distance between obstacles ---
-      const min = 250;
-      const max = 450;
+      // Significantly reduced distance between obstacles for more frequent spawns
+      const min = 150; // Was 250
+      const max = 300; // Was 450
       this.distanceToNextSpawn = Math.floor(Math.random() * (max - min + 1) + min);
   }
 
@@ -127,12 +127,19 @@ class Game {
   }
   
   updateScoreDisplay() {
-      this.scoreDisplay.textContent = 'Score: ' + this.score;
+      this.scoreDisplay.textContent = 'Score: ' + Math.floor(this.score); // Use Math.floor to display whole numbers for score
   }
 
   update() {
     if (!this.gameRunning) return;
+
+    // --- SCORING CHANGE: 1 point per every step (distance travelled) ---
+    const previousDistance = Math.floor(this.distance);
     this.distance += this.speed;
+    const currentDistance = Math.floor(this.distance);
+    if (currentDistance > previousDistance) {
+        this.score += (currentDistance - previousDistance); // Add points for each unit of distance covered
+    }
 
     if (this.jumpRequested && this.player.grounded) {
         this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
@@ -170,21 +177,21 @@ class Game {
             this.gameOver();
         }
 
-        // --- SCORING CHANGE: Score 1 point when player passes an obstacle ---
+        // --- SCORING CHANGE: 10 points per obstacle when player passes it ---
         if (!obs.scored && obs.x + obs.w < this.player.x) {
-            this.score++;
+            this.score += 10;
             obs.scored = true;
             this.updateScoreDisplay();
         }
 
         if (obs.x + obs.w < 0) {
             this.obstacles.splice(i, 1);
-            // Old scoring logic removed from here
         }
     }
 
     this.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) c.x = this.canvas.width; });
     if (this.player.jumping) this.jumpRequested = false;
+    this.updateScoreDisplay(); // Update score display every frame for distance points
   }
   
   drawPlayer(px, py) {
@@ -246,9 +253,9 @@ class Game {
 
   gameOver() {
     this.gameRunning = false;
-    this.finalScoreDisplay.textContent = this.score;
+    this.finalScoreDisplay.textContent = Math.floor(this.score);
     if (this.score > this.bestScore) {
-        this.bestScore = this.score;
+        this.bestScore = Math.floor(this.score); // Store best score as a whole number
         localStorage.setItem('tarboushBestScore', this.bestScore);
     }
     this.updateBestScoreDisplay();
