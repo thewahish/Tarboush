@@ -10,11 +10,35 @@ class Game {
     this.distance = 0;
     this.lastScoredDistance = 0; // To track distance for scoring
 
-    this.player = {
-      x: 100, y: 0, width: 40, height: 60,
-      velY: 0, jumping: false, grounded: true, isDucking: false,
-      runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 },
-      duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 }
+    // --- NEW: Day/Night Mode State & Colors ---
+    this.isNightMode = false;
+    this.themeColors = {
+      day: {
+        // Colors for canvas elements in Day Mode
+        ground: '#A0522D', // Sienna
+        cloud: 'rgba(255,255,255,0.8)', // White clouds
+        playerTarboush: '#CE1126', // Red
+        playerBody: '#FFFFFF', // White
+        playerSkin: '#FDBCB4',
+        playerDetail: '#000000', // Black
+        obstacleGreen: '#007A3D', // Green (cactus, bush)
+        obstacleBlack: '#000000', // Black (bird)
+        obstacleGrey: '#696969', // Grey (rock, missile)
+        obstacleMissileFlame: '#FF4500', // Orange (missile flame)
+      },
+      night: {
+        // Colors for canvas elements in Night Mode (inverted/darker theme)
+        ground: '#5A2C10', // Darker brown
+        cloud: 'rgba(200,200,200,0.2)', // Dim, semi-transparent grey clouds
+        playerTarboush: '#990B1E', // Darker Red
+        playerBody: '#BBBBBB', // Light grey
+        playerSkin: '#A17B74', // Darker skin
+        playerDetail: '#EEEEEE', // Light grey
+        obstacleGreen: '#004D27', // Dark green
+        obstacleBlack: '#AAAAAA', // Light grey silhouette
+        obstacleGrey: '#333333', // Darker grey
+        obstacleMissileFlame: '#E68A00', // Darker orange
+      }
     };
 
     this.setupCanvas();
@@ -65,6 +89,22 @@ class Game {
     return clouds;
   }
 
+  // --- NEW: Helper to get current theme color for canvas drawing ---
+  _getColor(colorName) {
+    const mode = this.isNightMode ? 'night' : 'day';
+    return this.themeColors[mode][colorName];
+  }
+
+  // --- NEW: Toggle Day/Night Mode ---
+  toggleDayNight() {
+    this.isNightMode = !this.isNightMode;
+    document.body.classList.toggle('night-mode', this.isNightMode);
+    // Update score display to refresh its background/text color from CSS
+    this.updateScoreDisplay();
+    // Re-draw immediately to apply color changes
+    this.draw();
+  }
+
   bindEvents() {
     const handleAction = () => {
         if (this.gameRunning) {
@@ -100,14 +140,16 @@ class Game {
     document.getElementById('duckButton').addEventListener('touchend', (e) => { e.preventDefault(); duckEnd(); });
 
     document.getElementById('restartBtn').addEventListener('click', () => this.restart());
+    // --- NEW: Bind day/night toggle button ---
+    document.getElementById('dayNightToggle').addEventListener('click', () => this.toggleDayNight());
+    document.getElementById('dayNightToggle').addEventListener('touchstart', (e) => { e.preventDefault(); this.toggleDayNight(); });
+
     window.addEventListener('resize', () => this.setupCanvas());
   }
 
   setNextSpawnDistance() {
-      // --- GAMEPLAY CHANGE: Reduced distance between obstacles by half ---
-      // Old values were min = 150, max = 300
-      const min = 75; // Half of 150
-      const max = 150; // Half of 300
+      const min = 75;
+      const max = 150;
       this.distanceToNextSpawn = Math.floor(Math.random() * (max - min + 1) + min);
   }
 
@@ -138,19 +180,16 @@ class Game {
   update() {
     if (!this.gameRunning) return;
 
-    // Update distance
     this.distance += this.speed;
 
-    // SCORING: 1 point per every 100 steps
     const currentTotalSteps = Math.floor(this.distance);
     const stepsSinceLastScore = currentTotalSteps - this.lastScoredDistance;
 
-    if (stepsSinceLastScore >= 100) { // Check for every 100 steps
-        this.score += Math.floor(stepsSinceLastScore / 100); // Add points for every full 100 steps
-        this.lastScoredDistance += Math.floor(stepsSinceLastScore / 100) * 100; // Update last scored distance in multiples of 100
+    if (stepsSinceLastScore >= 100) {
+        this.score += Math.floor(stepsSinceLastScore / 100);
+        this.lastScoredDistance += Math.floor(stepsSinceLastScore / 100) * 100;
         this.updateScoreDisplay();
     }
-
 
     if (this.jumpRequested && this.player.grounded) {
         this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
@@ -188,7 +227,6 @@ class Game {
             this.gameOver();
         }
 
-        // SCORING: 10 points per obstacle
         if (!obs.scored && obs.x + obs.w < this.player.x) {
             this.score += 10;
             obs.scored = true;
@@ -204,9 +242,13 @@ class Game {
     if (this.player.jumping) this.jumpRequested = false;
   }
   
+  // --- UPDATED: Draw Player with theme colors ---
   drawPlayer(px, py) {
-    const ctx = this.ctx; const tarboushColor = '#CE1126'; const bodyColor = '#FFFFFF';
-    const skinColor = '#FDBCB4'; const detailColor = '#000000';
+    const ctx = this.ctx;
+    const tarboushColor = this._getColor('playerTarboush');
+    const bodyColor = this._getColor('playerBody');
+    const skinColor = this._getColor('playerSkin');
+    const detailColor = this._getColor('playerDetail');
 
     if (this.player.isDucking) {
         ctx.fillStyle = bodyColor; ctx.fillRect(px + 6, py + 35, 28, 25);
@@ -222,7 +264,7 @@ class Game {
     ctx.fillRect(px + 27, py + 5, 2, 6);
     ctx.fillStyle = skinColor; ctx.beginPath(); ctx.arc(px + 20, py + 25, 10, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = detailColor; ctx.beginPath(); ctx.arc(px + 17, py + 23, 1.5, 0, Math.PI * 2); ctx.arc(px + 23, py + 23, 1.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#8B4513'; ctx.fillRect(px + 16, py + 27, 8, 2);
+    ctx.fillStyle = '#8B4513'; ctx.fillRect(px + 16, py + 27, 8, 2); // Beard color (remains fixed)
     ctx.fillStyle = bodyColor; ctx.fillRect(px + 12, py + 35, 16, 25);
     ctx.fillStyle = skinColor; ctx.beginPath();
     if (this.player.jumping) {
@@ -233,31 +275,57 @@ class Game {
     ctx.fill();
   }
 
+  // --- UPDATED: Draw elements with theme colors ---
   draw() {
     const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    ctx.fillStyle = '#A0522D'; ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
-    ctx.fillStyle = 'rgba(255,255,255,0.8)';
-    this.clouds.forEach(c => { ctx.beginPath(); ctx.arc(c.x, c.y, 20, 0, Math.PI*2); ctx.arc(c.x + 25, c.y, 25, 0, Math.PI*2); ctx.arc(c.x + 50, c.y, 20, 0, Math.PI*2); ctx.fill(); });
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear entire canvas
+
+    // Ground
+    ctx.fillStyle = this._getColor('ground');
+    ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
+
+    // Clouds
+    ctx.fillStyle = this._getColor('cloud');
+    this.clouds.forEach(c => {
+      ctx.beginPath();
+      ctx.arc(c.x, c.y, 20, 0, Math.PI*2);
+      ctx.arc(c.x + 25, c.y, 25, 0, Math.PI*2);
+      ctx.arc(c.x + 50, c.y, 20, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // Player
     this.drawPlayer(this.player.x, this.player.y);
 
+    // Obstacles
     this.obstacles.forEach(obs => {
-        const green = '#007A3D', black = '#000000', grey = '#696969';
-        ctx.fillStyle = green;
-        if (obs.type === 'cactus') {
-            ctx.fillRect(obs.x + 10, obs.y, 10, obs.h); ctx.fillRect(obs.x, obs.y + 15, 10, 10); ctx.fillRect(obs.x + 20, obs.y + 20, 10, 10);
-        } else if (obs.type === 'rock') {
-            ctx.fillStyle = grey; ctx.beginPath(); ctx.ellipse(obs.x + obs.w / 2, obs.y + obs.h / 2, obs.w / 2, obs.h / 2, 0, 0, Math.PI * 2); ctx.fill();
-        } else if (obs.type === 'spiky_bush') {
-            ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h); ctx.lineTo(obs.x + obs.w / 2, obs.y); ctx.lineTo(obs.x + obs.w, obs.y + obs.h); ctx.closePath(); ctx.fill();
-        } else if (obs.type === 'bird' || obs.type === 'swooping_bird') {
-            ctx.fillStyle = black; ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h / 2);
-            ctx.quadraticCurveTo(obs.x + obs.w / 2, obs.y - obs.h / 2, obs.x + obs.w, obs.y + obs.h / 2);
-            ctx.quadraticCurveTo(obs.x + obs.w / 2, obs.y + obs.h, obs.x, obs.y + obs.h / 2); ctx.fill();
-        } else if (obs.type === 'low_missile') {
-            ctx.fillStyle = grey; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-            ctx.fillStyle = '#FF4500'; ctx.beginPath(); ctx.arc(obs.x + obs.w, obs.y + obs.h / 2, obs.h / 2, -Math.PI/2, Math.PI/2); ctx.fill();
-        }
+      let obstacleFillStyle;
+      if (obs.type === 'cactus' || obs.type === 'spiky_bush') {
+        obstacleFillStyle = this._getColor('obstacleGreen');
+      } else if (obs.type === 'rock') {
+        obstacleFillStyle = this._getColor('obstacleGrey');
+      } else if (obs.type === 'bird' || obs.type === 'swooping_bird') {
+        obstacleFillStyle = this._getColor('obstacleBlack');
+      } else if (obs.type === 'low_missile') {
+        obstacleFillStyle = this._getColor('obstacleGrey');
+      }
+      ctx.fillStyle = obstacleFillStyle;
+
+      if (obs.type === 'cactus') {
+          ctx.fillRect(obs.x + 10, obs.y, 10, obs.h); ctx.fillRect(obs.x, obs.y + 15, 10, 10); ctx.fillRect(obs.x + 20, obs.y + 20, 10, 10);
+      } else if (obs.type === 'rock') {
+          ctx.beginPath(); ctx.ellipse(obs.x + obs.w / 2, obs.y + obs.h / 2, obs.w / 2, obs.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+      } else if (obs.type === 'spiky_bush') {
+          ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h); ctx.lineTo(obs.x + obs.w / 2, obs.y); ctx.lineTo(obs.x + obs.w, obs.y + obs.h); ctx.closePath(); ctx.fill();
+      } else if (obs.type === 'bird' || obs.type === 'swooping_bird') {
+          ctx.beginPath(); ctx.moveTo(obs.x, obs.y + obs.h / 2);
+          ctx.quadraticCurveTo(obs.x + obs.w / 2, obs.y - obs.h / 2, obs.x + obs.w, obs.y + obs.h / 2);
+          ctx.quadraticCurveTo(obs.x + obs.w / 2, obs.y + obs.h, obs.x, obs.y + obs.h / 2); ctx.fill();
+      } else if (obs.type === 'low_missile') {
+          ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+          ctx.fillStyle = this._getColor('obstacleMissileFlame'); // Missile flame color
+          ctx.beginPath(); ctx.arc(obs.x + obs.w, obs.y + obs.h / 2, obs.h / 2, -Math.PI/2, Math.PI/2); ctx.fill();
+      }
     });
   }
 
