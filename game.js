@@ -79,11 +79,11 @@ class Game {
 
         // --- NEW: Character Data ---
         this.characters = [
-            { id: 'shami_abu_tarboush', name: 'شامي أبو طربوش', available: true, image: 'placeholder.png' }, // Placeholder image
-            { id: 'fatom_hays_bays', name: 'فطوم حيص بيص', available: false, image: 'placeholder.png' },
-            { id: 'zulfiqar', name: 'زولفيقار', available: false, image: 'placeholder.png' },
-            { id: 'bakri_abu_halab', name: 'بكري أبو حلب', available: false, image: 'placeholder.png' },
-            { id: 'warni_warni', name: 'ورني ورني', available: false, image: 'placeholder.png' }
+            { id: 'shami_abu_tarboush', name: 'شامي أبو طربوش', available: true, image: 'https://via.placeholder.com/60/FF0000/FFFFFF?text=ش' }, // Placeholder image
+            { id: 'fatom_hays_bays', name: 'فطوم حيص بيص', available: false, image: 'https://via.placeholder.com/60/0000FF/FFFFFF?text=ف' },
+            { id: 'zulfiqar', name: 'زولفيقار', available: false, image: 'https://via.placeholder.com/60/00FF00/FFFFFF?text=ز' },
+            { id: 'bakri_abu_halab', name: 'بكري أبو حلب', available: false, image: 'https://via.placeholder.com/60/FFFF00/000000?text=ب' },
+            { id: 'warni_warni', name: 'ورني ورني', available: false, image: 'https://via.placeholder.com/60/FF00FF/FFFFFF?text=و' }
         ];
         this.selectedCharacterId = 'shami_abu_tarboush'; // Default selected character
 
@@ -126,7 +126,6 @@ class Game {
         console.log("[Constructor DEBUG] Game init success. currentGameState:", this.currentGameState);
         this.updateDebugger(`Game init success. State: ${this.currentGameState}`);
 
-        // Initial draw for character select screen (even if not playing)
         this.gameLoop(); // Starts the main loop, but it will pause in 'characterSelect' state.
 
     } catch (e) {
@@ -138,30 +137,37 @@ class Game {
     console.log("[Constructor DEBUG] Constructor finished. Final gameRunning state:", this.gameRunning);
   }
 
-  // --- CHANGE: Canvas Setup for Landscape Aspect Ratio ---
+  // --- CHANGE: Canvas Setup for Larger Size and Landscape Aspect Ratio ---
   setupCanvas() {
-    const desiredAspectRatio = 2; // e.g., 2:1 width to height for a wider landscape view
-    const minPadding = 40; // Minimum padding on sides
+    const desiredAspectRatio = 2; // 2:1 width to height for a wider landscape view
+    const minHorizontalPadding = 40; // Minimum padding on left/right
+    const minVerticalPadding = 40; // Minimum padding on top/bottom
 
-    let targetWidth = window.innerWidth - minPadding;
-    let targetHeight = window.innerHeight - minPadding;
+    // Attempt to fill available screen space while respecting aspect ratio and max limits
+    let targetWidth = window.innerWidth - minHorizontalPadding;
+    let targetHeight = window.innerHeight - minVerticalPadding;
 
-    // Calculate actual canvas dimensions maintaining aspect ratio
-    if (targetWidth / targetHeight > desiredAspectRatio) {
-        // Window is wider than desired aspect, constrain by height
-        this.canvas.height = Math.min(targetHeight, 400); // Cap height at 400
-        this.canvas.width = this.canvas.height * desiredAspectRatio;
-    } else {
-        // Window is taller than desired aspect, constrain by width
-        this.canvas.width = Math.min(targetWidth, 800); // Cap width at 800
-        this.canvas.height = this.canvas.width / desiredAspectRatio;
+    // --- Adjusting base dimensions for a larger feel ---
+    const baseCanvasHeight = 350; // Increased base height from 300 to 350
+    const baseCanvasWidth = baseCanvasHeight * desiredAspectRatio; // 700 for 2:1 aspect
+
+    // Scale down if window is too small, or cap at max desirable size
+    let scaleFactor = 1;
+    if (targetWidth < baseCanvasWidth) {
+        scaleFactor = targetWidth / baseCanvasWidth;
     }
+    if (targetHeight < baseCanvasHeight) {
+        scaleFactor = Math.min(scaleFactor, targetHeight / baseCanvasHeight);
+    }
+    // Cap at a max scale (e.g., if desktop is very large)
+    scaleFactor = Math.min(scaleFactor, 800 / baseCanvasWidth); // Don't let it get larger than 800px width
 
-    // Ensure it doesn't get too small if window is tiny
-    // These minimums are important for small mobile screens in landscape
+    this.canvas.width = baseCanvasWidth * scaleFactor;
+    this.canvas.height = baseCanvasHeight * scaleFactor;
+
+    // Ensure it doesn't get ridiculously small (minimum playable size)
     const absoluteMinWidth = 300;
     const absoluteMinHeight = 150;
-
     if (this.canvas.width < absoluteMinWidth) {
         this.canvas.width = absoluteMinWidth;
         this.canvas.height = this.canvas.width / desiredAspectRatio;
@@ -212,69 +218,79 @@ class Game {
   updateUIVisibility() {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       
-      const gameElements = [
-          this.canvas.parentElement, // .game-container
-          this.scoreDisplay.parentElement, // #ui-container
-          document.getElementById('jumpButton'),
-          document.getElementById('duckButton'),
-          this.debuggerDisplay
-      ];
+      const gameContainer = this.canvas.parentElement; // .game-container
+      const uiContainer = this.scoreDisplay.parentElement; // #ui-container
+      const jumpButton = document.getElementById('jumpButton');
+      const duckButton = document.getElementById('duckButton');
+      const actionButtons = [jumpButton, duckButton];
+      const orientationWarning = document.getElementById('orientation-warning');
 
-      // Hide all game elements by default (they are shown in landscape CSS)
-      // We explicitly hide them here based on game state
-      gameElements.forEach(el => {
-        if(el) el.style.display = 'none';
-      });
-      this.gameOverScreen.style.display = 'none';
+      // --- Step 1: Hide everything that JS controls, then selectively show ---
+      gameContainer.style.display = 'none';
+      uiContainer.style.display = 'none';
+      actionButtons.forEach(btn => { if(btn) btn.style.display = 'none'; });
+      this.debuggerDisplay.style.display = 'none';
       this.characterSelectScreen.style.display = 'none';
-      
+      this.gameOverScreen.style.display = 'none';
+      orientationWarning.style.display = 'none';
+
+
+      // --- Step 2: Show based on Orientation and currentGameState ---
       if (isLandscape) {
+          // In landscape, we show game or character select or game over
           if (this.currentGameState === 'playing') {
-              gameElements.forEach(el => {
-                // Ensure correct display type (flex for containers, block for score/debugger/canvas itself)
-                if (el.id === 'ui-container' || el.id === 'debuggerDisplay' || el.classList.contains('action-button') || el.classList.contains('game-container')) {
-                    if(el) el.style.display = 'flex';
-                } else if (el) { // Canvas element parent and score itself are not flex by default
-                    el.style.display = 'block';
-                }
-              });
-              this.scoreDisplay.style.display = 'block'; // Explicitly set score display to block
+              gameContainer.style.display = 'flex';
+              uiContainer.style.display = 'flex';
+              actionButtons.forEach(btn => { if(btn) btn.style.display = 'flex'; });
+              this.debuggerDisplay.style.display = 'flex';
+              // game over screen and char select screen remain hidden
           } else if (this.currentGameState === 'gameOver') {
-              this.gameOverScreen.style.display = 'block';
-              // Keep canvas visible in game over to see final state
-              if(this.canvas.parentElement) this.canvas.parentElement.style.display = 'flex';
-              if(this.canvas) this.canvas.style.display = 'block';
-              if(this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible
+              gameContainer.style.display = 'flex'; // Still show background canvas
+              uiContainer.style.display = 'flex'; // To show score and game over dialog
+              actionButtons.forEach(btn => { if(btn) btn.style.display = 'none'; }); // Hide action buttons
+              this.gameOverScreen.style.display = 'block'; // Show game over dialog
+              this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible
+              // char select remains hidden
           } else if (this.currentGameState === 'characterSelect') {
-              this.characterSelectScreen.style.display = 'flex';
+              this.characterSelectScreen.style.display = 'flex'; // Show character select
           }
+      } else { // Portrait mode
+          orientationWarning.style.display = 'flex'; // Only show orientation warning
+          // All other game elements remain hidden by initial 'display: none'
       }
-      // Orientation warning CSS handles portrait display automatically
   }
 
 
   // --- NEW: Renders/updates the character selection screen ---
   renderCharacterSelectScreen() {
       const characterGrid = this.characterSelectScreen.querySelector('.character-grid');
+      if (!characterGrid) {
+          console.error("Character grid element not found!");
+          this.updateDebugger("Error: Character grid not found.");
+          return;
+      }
       characterGrid.innerHTML = ''; // Clear previous slots
 
       this.characters.forEach(char => {
           const slot = document.createElement('div');
           slot.classList.add('character-slot');
-          
-          let imgSource = char.image; // Use char.image if you have actual images
-          // For now, let's just make it a colored square/circle if no image path exists
-          const charImageHtml = `<div style="width:60px; height:60px; border-radius:50%; background-color:${char.available ? 'var(--revolutionary-red)' : '#888'}; border: 2px solid var(--syrian-white); margin-bottom: 8px;"></div>`;
+          slot.setAttribute('data-char-id', char.id); // Store ID for selection
+
+          // Placeholder images using placeholder.com for now
+          const charImageHtml = `<img src="${char.image}" alt="${char.name}" loading="lazy">`;
           
           slot.innerHTML = `${charImageHtml}<p>${char.name}</p>`;
 
           if (char.available) {
               slot.classList.add('available');
+              // Highlight initial selected character
+              if (char.id === this.selectedCharacterId) {
+                  slot.classList.add('selected');
+              }
               slot.addEventListener('click', () => {
                   this.selectedCharacterId = char.id;
-                  // Add visual feedback for selection if desired (e.g., add 'selected' class)
-                  this.updateDebugger(`Selected character: ${char.name}`);
-                  // Highlight selected character
+                  this.updateDebugger(`Selected: ${char.name}`);
+                  // Update visual selection
                   characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
                   slot.classList.add('selected');
               });
@@ -302,7 +318,7 @@ class Game {
     this.updateDebugger('Starting new game...');
     this.gameRunning = true; // Set game to running
     this.score = 0; this.speed = 3; this.distance = 0;
-    this.lastScoredDistance = 0; // Reset for new game
+    this.lastScoredDistance = 0;
     this.nextThemeToggleScore = 500; // Reset theme toggle score for new game
     this.player.y = this.groundY - this.player.height;
     this.player.velY = 0; this.player.grounded = true; this.player.isDucking = false;
@@ -325,6 +341,7 @@ class Game {
   bindEvents() {
     console.log("[bindEvents DEBUG] Starting bindEvents.");
     try {
+        // --- Added currentGameState check to input handlers ---
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); if (this.currentGameState === 'playing') this.jumpRequested = true; }
             else if (e.key === 'ArrowDown') { e.preventDefault(); if (this.currentGameState === 'playing') { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } }
@@ -346,9 +363,9 @@ class Game {
         console.log("[bindEvents DEBUG] duckButton:", duckButton);
         if (duckButton) {
             duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
-            duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); this.player.isDucking = false; });
+            duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; });
             duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
-            duckButton.addEventListener('touchend', (e) => { e.preventDefault(); this.player.isDucking = false; });
+            duckButton.addEventListener('touchend', (e) => { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; });
         } else {
             throw new Error("duckButton not found!");
         }
@@ -362,12 +379,13 @@ class Game {
             throw new Error("restartBtn not found!");
         }
 
-        // --- NEW: Add event listener for screen orientation changes ---
-        window.addEventListener('orientationchange', () => this.updateUIVisibility());
+        // --- NEW: Add event listener for screen orientation changes and resize ---
         window.addEventListener('resize', () => {
             this.setupCanvas(); // Recalculate canvas size on resize
             this.updateUIVisibility(); // Adjust UI visibility (esp. for orientation changes)
         });
+        window.addEventListener('orientationchange', () => this.updateUIVisibility());
+
 
         this.updateDebugger('All core events bound successfully.');
         console.log("[bindEvents DEBUG] bindEvents finished successfully.");
@@ -434,7 +452,7 @@ class Game {
             this.updateScoreDisplay();
         }
 
-        // --- CHANGE: Day/Night toggle every 500 points ---
+        const currentThousandBlock = Math.floor(this.score / 1000);
         if (this.score >= this.nextThemeToggleScore) {
              this.toggleDayNight();
              this.nextThemeToggleScore += 500; // Increment by 500
@@ -467,9 +485,7 @@ class Game {
             else if (obs.type === 'low_missile') obs.y = this.groundY - 65; // Corrected missile positioning
             else obs.y = this.groundY - obs.h; // This handles cactus, rock, spiky_bush (ground obstacles)
             
-            // --- NEW: Detailed Obstacle Y Debugging ---
             console.log(`[Obstacle Y DEBUG] Type: ${obs.type}, GroundY: ${this.groundY}, Obs.h: ${obs.h}, Calculated Y: ${obs.y}`);
-            // --- END NEW DEBUG ---
 
             const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
             const playerHitbox = {
