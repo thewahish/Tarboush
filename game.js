@@ -15,6 +15,7 @@ class Game {
     this.score = 0;
     this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
     this.speed = 3;
+    this.distance = 0;
 
     this.player = {
       x: 100,
@@ -24,21 +25,30 @@ class Game {
       velY: 0,
       jumping: false,
       grounded: true,
-      // More forgiving hitbox, inset from the drawing box
-      hitbox: {
-        x_offset: 5,
-        y_offset: 5,
-        width: 30,
-        height: 55
-      }
+      isDucking: false,
+      // Hitboxes
+      runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 },
+      duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 }
     };
 
+    // Control flags
+    this.jumpRequested = false;
+
+    // Obstacle Management
     this.obstacles = [];
-    this.spawnTimer = 0;
+    this.distanceToNextSpawn = 0;
+    this.obstaclePatterns = [
+        { type: 'single_cactus', minSpeed: 0 },
+        { type: 'single_rock', minSpeed: 0 },
+        { type: 'high_bird', minSpeed: 4 },
+        { type: 'double_rock', minSpeed: 5 }
+    ];
+
     this.clouds = this.createClouds();
 
     this.bindEvents();
     this.updateBestScoreDisplay();
+    this.setNextSpawnDistance();
     this.gameLoop();
   }
 
@@ -64,41 +74,88 @@ class Game {
   }
 
   bindEvents() {
-    const jumpAction = () => {
-      if (this.gameRunning && this.player.grounded) {
-        this.player.velY = -12;
-        this.player.jumping = true;
-        this.player.grounded = false;
-      } else if (!this.gameRunning) {
-        this.restart();
-      }
+    // --- CONTROL IMPROVEMENT: Jump Buffering ---
+    const requestJump = () => {
+        if (!this.player.isDucking) {
+            this.jumpRequested = true;
+        }
     };
+    const duckStart = () => {
+        if (this.player.grounded) {
+            this.player.isDucking = true;
+        }
+    };
+    const duckEnd = () => { this.player.isDucking = false; };
 
+    // Keyboard events
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.key === 'ArrowUp') {
+      if ((e.code === 'Space' || e.key === 'ArrowUp')) {
         e.preventDefault();
-        jumpAction();
+        requestJump();
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        duckStart();
+      } else if (!this.gameRunning && e.code === 'Space') {
+          this.restart();
       }
     });
-
-    this.canvas.addEventListener('click', jumpAction);
-    document.getElementById('jumpButton').addEventListener('click', jumpAction);
-    
-    this.canvas.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        jumpAction();
-    });
-    document.getElementById('jumpButton').addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        jumpAction();
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            duckEnd();
+        }
     });
 
+    // Touch events
+    document.getElementById('jumpButton').addEventListener('touchstart', (e) => { e.preventDefault(); requestJump(); });
+    document.getElementById('duckButton').addEventListener('touchstart', (e) => { e.preventDefault(); duckStart(); });
+    document.getElementById('duckButton').addEventListener('touchend', (e) => { e.preventDefault(); duckEnd(); });
+
+    // Other events
     document.getElementById('restartBtn').addEventListener('click', () => this.restart());
     window.addEventListener('resize', () => this.setupCanvas());
   }
 
+  setNextSpawnDistance() {
+      const min = 300;
+      const max = 600;
+      this.distanceToNextSpawn = Math.floor(Math.random() * (max - min + 1) + min);
+  }
+
+  spawnObstacles() {
+    const availablePatterns = this.obstaclePatterns.filter(p => this.speed >= p.minSpeed);
+    const pattern = availablePatterns[Math.floor(Math.random() * availablePatterns.length)];
+
+    switch (pattern.type) {
+        case 'single_cactus':
+            this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'cactus' });
+            break;
+        case 'single_rock':
+            this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'rock' });
+            break;
+        case 'high_bird':
+            this.obstacles.push({ x: this.canvas.width, w: 40, h: 30, type: 'bird' });
+            break;
+        case 'double_rock':
+            this.obstacles.push({ x: this.canvas.width, w: 30, h: 50, type: 'rock' });
+            this.obstacles.push({ x: this.canvas.width + 60, w: 30, h: 50, type: 'rock' });
+            break;
+    }
+    this.setNextSpawnDistance();
+  }
+
   update() {
     if (!this.gameRunning) return;
+
+    this.distance += this.speed;
+
+    // --- JUMP BUFFERING LOGIC ---
+    if (this.jumpRequested && this.player.grounded) {
+        this.player.velY = -12;
+        this.player.jumping = true;
+        this.player.grounded = false;
+        this.jumpRequested = false; // Reset request
+    }
 
     // Player physics
     this.player.velY += 0.6; // Gravity
@@ -106,110 +163,130 @@ class Game {
 
     // Ground collision
     if (this.player.y >= this.groundY - this.player.height) {
-      this.player.y = this.groundY - this.player.height;
-      this.player.velY = 0;
-      this.player.jumping = false;
-      this.player.grounded = true;
+        this.player.y = this.groundY - this.player.height;
+        this.player.velY = 0;
+        this.player.jumping = false;
+        this.player.grounded = true;
+    }
+    // Cannot duck in the air
+    if(!this.player.grounded) {
+        this.player.isDucking = false;
     }
 
-    // --- PHYSICS IMPROVEMENT: Smooth Speed Increase ---
+
+    // Smooth Speed Increase
     this.speed += 0.001;
 
-    // Spawn obstacles
-    if (this.spawnTimer++ > 120 - (this.speed * 5)) {
-      this.obstacles.push({
-        x: this.canvas.width,
-        y: this.groundY - 50,
-        w: 30, h: 50,
-        type: ['cactus', 'rock'][Math.floor(Math.random() * 2)]
-      });
-      this.spawnTimer = 0;
+    // --- OBSTACLE SPAWNING ---
+    this.distanceToNextSpawn -= this.speed;
+    if (this.distanceToNextSpawn <= 0) {
+        this.spawnObstacles();
     }
-
+    
     // Update obstacles
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
-      const obs = this.obstacles[i];
-      obs.x -= this.speed;
+        const obs = this.obstacles[i];
+        obs.x -= this.speed;
 
-      // --- PHYSICS IMPROVEMENT: Use the smaller, fairer hitbox for collision detection ---
-      const playerHitbox = {
-        x: this.player.x + this.player.hitbox.x_offset,
-        y: this.player.y + this.player.hitbox.y_offset,
-        width: this.player.hitbox.width,
-        height: this.player.hitbox.height
-      };
+        // Set y position based on type
+        obs.y = (obs.type === 'bird') ? this.groundY - 80 : this.groundY - obs.h;
+        
+        // Use the correct hitbox based on ducking state
+        const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
+        const playerHitbox = {
+            x: this.player.x + hitbox.x_offset,
+            y: this.player.y + hitbox.y_offset,
+            width: hitbox.width,
+            height: hitbox.height
+        };
       
-      if (
-        playerHitbox.x < obs.x + obs.w &&
-        playerHitbox.x + playerHitbox.width > obs.x &&
-        playerHitbox.y < obs.y + obs.h &&
-        playerHitbox.y + playerHitbox.height > obs.y
-      ) {
-        this.gameOver();
-      }
+        if (
+            playerHitbox.x < obs.x + obs.w &&
+            playerHitbox.x + playerHitbox.width > obs.x &&
+            playerHitbox.y < obs.y + obs.h &&
+            playerHitbox.y + playerHitbox.height > obs.y
+        ) {
+            this.gameOver();
+        }
 
-      // Remove off-screen obstacles and score
-      if (obs.x + obs.w < 0) {
-        this.obstacles.splice(i, 1);
-        this.score += 10;
-        this.scoreDisplay.textContent = 'Score: ' + this.score;
-      }
+        if (obs.x + obs.w < 0) {
+            this.obstacles.splice(i, 1);
+            this.score += 10;
+            this.scoreDisplay.textContent = 'Score: ' + this.score;
+        }
     }
 
     // Update clouds
     this.clouds.forEach(cloud => {
-      cloud.x -= cloud.speed;
-      if (cloud.x + cloud.w < 0) cloud.x = this.canvas.width;
+        cloud.x -= cloud.speed;
+        if (cloud.x + cloud.w < 0) cloud.x = this.canvas.width;
     });
+    
+    // Reset jump request if player is in the air for too long
+    if (this.player.jumping) {
+        this.jumpRequested = false;
+    }
   }
   
   drawPlayer(px, py) {
     const ctx = this.ctx;
 
+    // --- DUCKING DRAW LOGIC ---
+    if (this.player.isDucking) {
+        // Body
+        ctx.fillStyle = '#F5F5DC'; // Beige
+        ctx.fillRect(px + 6, py + 35, 28, 25);
+        // Tarboush
+        ctx.fillStyle = '#DC143C';
+        ctx.beginPath();
+        ctx.moveTo(px + 8, py + 40);
+        ctx.quadraticCurveTo(px + 20, py + 20, px + 32, py + 40);
+        ctx.fill();
+        // Head
+        ctx.fillStyle = '#FDBCB4';
+        ctx.beginPath();
+        ctx.arc(px + 20, py + 45, 10, 0, Math.PI * 2);
+        ctx.fill();
+        return; // End drawing here for ducking pose
+    }
+
+    // --- REGULAR DRAW LOGIC ---
     // Tarboush
-    ctx.fillStyle = '#DC143C'; // Crimson Red
+    ctx.fillStyle = '#DC143C';
     ctx.beginPath();
     ctx.moveTo(px + 8, py + 15);
     ctx.quadraticCurveTo(px + 20, py - 5, px + 32, py + 15);
     ctx.fill();
-
     // Tassel
     ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(px + 28, py + 3, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(px + 27, py + 5, 2, 6);
-
     // Head
-    ctx.fillStyle = '#FDBCB4'; // Skin tone
+    ctx.fillStyle = '#FDBCB4';
     ctx.beginPath();
     ctx.arc(px + 20, py + 25, 10, 0, Math.PI * 2);
     ctx.fill();
-
     // Eyes
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.arc(px + 17, py + 23, 1.5, 0, Math.PI * 2);
     ctx.arc(px + 23, py + 23, 1.5, 0, Math.PI * 2);
     ctx.fill();
-
     // Mustache
-    ctx.fillStyle = '#8B4513'; // SaddleBrown
+    ctx.fillStyle = '#8B4513';
     ctx.fillRect(px + 16, py + 27, 8, 2);
-
-    // Body (Dishdasha)
-    ctx.fillStyle = '#F5F5DC'; // Beige
+    // Body
+    ctx.fillStyle = '#F5F5DC';
     ctx.fillRect(px + 12, py + 35, 16, 25);
-
     // Hands
     ctx.fillStyle = '#FDBCB4';
     ctx.beginPath();
     if (this.player.jumping) {
-      // One hand holds the tarboush while jumping
       ctx.arc(px + 28, py + 6, 4, 0, Math.PI * 2);
       ctx.arc(px + 12, py + 42, 4, 0, Math.PI * 2);
     } else {
-      // Hands swinging while running
       ctx.arc(px + 8, py + 42, 4, 0, Math.PI * 2);
       ctx.arc(px + 32, py + 42, 4, 0, Math.PI * 2);
     }
@@ -220,15 +297,13 @@ class Game {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Sky gradient
+    // Scenery
     const grad = ctx.createLinearGradient(0, 0, 0, this.canvas.height * 0.9);
-    grad.addColorStop(0, '#87CEEB'); // Sky Blue
-    grad.addColorStop(1, '#B0E0E6'); // Powder Blue
+    grad.addColorStop(0, '#87CEEB');
+    grad.addColorStop(1, '#B0E0E6');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, this.canvas.width, this.groundY);
-
-    // Ground
-    ctx.fillStyle = '#DEB887'; // BurlyWood
+    ctx.fillStyle = '#DEB887';
     ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
     
     // Clouds
@@ -247,14 +322,21 @@ class Game {
     // Obstacles
     this.obstacles.forEach(obs => {
         if (obs.type === 'cactus') {
-            ctx.fillStyle = '#228B22'; // ForestGreen
+            ctx.fillStyle = '#228B22';
             ctx.fillRect(obs.x + 10, obs.y, 10, obs.h);
             ctx.fillRect(obs.x, obs.y + 15, 10, 10);
             ctx.fillRect(obs.x + 20, obs.y + 20, 10, 10);
-        } else { // rock
-            ctx.fillStyle = '#696969'; // DimGray
+        } else if (obs.type === 'rock') {
+            ctx.fillStyle = '#696969';
             ctx.beginPath();
             ctx.ellipse(obs.x + obs.w / 2, obs.y + obs.h / 2, obs.w / 2, obs.h / 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (obs.type === 'bird') {
+            ctx.fillStyle = '#333'; // Bird color
+            ctx.beginPath();
+            ctx.moveTo(obs.x, obs.y + obs.h / 2);
+            ctx.quadraticCurveTo(obs.x + obs.w / 2, obs.y - obs.h / 2, obs.x + obs.w, obs.y + obs.h / 2);
+            ctx.quadraticCurveTo(obs.x + obs.w / 2, obs.y + obs.h, obs.x, obs.y + obs.h / 2);
             ctx.fill();
         }
     });
@@ -274,14 +356,21 @@ class Game {
   }
 
   restart() {
+    // Reset all game state variables
     this.gameRunning = true;
     this.score = 0;
-    this.speed = 3; // Reset speed
+    this.speed = 3;
+    this.distance = 0;
     this.player.y = this.groundY - this.player.height;
     this.player.velY = 0;
     this.player.grounded = true;
+    this.player.isDucking = false;
+    this.player.jumping = false;
+    this.jumpRequested = false;
     this.obstacles = [];
-    this.spawnTimer = 0;
+    this.setNextSpawnDistance();
+    
+    // Update UI
     this.scoreDisplay.textContent = 'Score: 0';
     this.gameOverScreen.style.display = 'none';
   }
@@ -289,6 +378,8 @@ class Game {
   updateBestScoreDisplay() {
       this.bestScoreDisplay.textContent = this.bestScore;
   }
+
+
 
   gameLoop() {
     this.update();
