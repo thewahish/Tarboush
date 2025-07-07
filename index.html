@@ -1,10 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="ar" dir="rtl"> <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Tarboush Runner</title>
-  <style>
+  <title>لحّق إذا بتلحق</title> <style>
     /* Syrian Flag & Base Colors (fixed, not inverted) */
     :root {
         --syrian-green: #007A3D;
@@ -44,55 +42,136 @@
 
     html, body {
       margin: 0; padding: 0; overflow: hidden;
-      background: var(--bg-color-main); /* Now uses dynamic background color */
+      background: var(--bg-color-main);
       font-family: 'Helvetica Neue', Arial, sans-serif;
       height: 100%;
       touch-action: manipulation;
-      transition: background-color 0.5s ease; /* Smooth transition */
+      transition: background-color 0.5s ease;
     }
-    .game-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100%;
+
+    /* --- Default (Portrait Mode): Hide game elements, show warning and character select --- */
+    .game-container,
+    #ui-container,
+    .action-button,
+    #debuggerDisplay {
+        display: none; /* Hidden by default */
     }
-    canvas {
-      display: block;
-      background: var(--canvas-bg-color); /* Now uses dynamic canvas background color */
-      border: 3px solid var(--canvas-border-color);
-      border-radius: 10px;
-      transition: background-color 0.5s ease; /* Smooth transition */
+    #characterSelectScreen { /* Character select screen visible by default (in portrait) */
+        display: flex;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: var(--bg-color-main);
+        flex-direction: column; justify-content: center; align-items: center;
+        color: var(--ui-text-main); z-index: 150;
+        text-align: center;
+        padding: 20px;
+        box-sizing: border-box;
+        transition: background-color 0.5s ease, color 0.5s ease;
     }
-    #ui-container {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+    #characterSelectScreen h2 {
+        font-size: 2.2em; margin-bottom: 20px; color: var(--revolutionary-red);
     }
+    .character-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr); /* 2 columns for characters */
+        gap: 15px;
+        margin-bottom: 30px;
+        max-width: 300px; /* Limit grid width */
+    }
+    .character-slot {
+        background: rgba(0,0,0,0.5); border-radius: 10px; padding: 15px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: var(--syrian-white); font-weight: bold; font-size: 0.9em;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transition: background-color 0.3s ease, transform 0.1s ease;
+    }
+    .character-slot.available {
+        background: var(--syrian-green); cursor: pointer;
+    }
+    .character-slot.available:hover {
+        transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+    }
+    .character-slot.grayed-out {
+        background: #555; opacity: 0.7;
+    }
+    .character-slot img {
+        width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--syrian-white); margin-bottom: 8px;
+    }
+    .character-slot.grayed-out img {
+        filter: grayscale(100%); opacity: 0.6;
+    }
+    .character-slot p { margin: 0; font-size: 1em; }
+    #start-game-btn {
+        padding: 15px 30px; font-size: 1.5em; background: var(--revolutionary-red);
+        color: var(--syrian-white); border: none; border-radius: 30px; cursor: pointer;
+        font-weight: bold; box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        transition: background-color 0.3s ease, transform 0.1s ease;
+    }
+    #start-game-btn:hover {
+        transform: translateY(-2px);
+    }
+    .coming-soon-text { margin-top: 25px; font-size: 1.1em; color: var(--ui-text-main); }
+
+
+    #orientation-warning {
+        display: flex; /* Show warning by default (in portrait) */
+        flex-direction: column;
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: #111; color: #fff; z-index: 200;
+        justify-content: center; align-items: center;
+        text-align: center; font-size: 18px;
+    }
+    #orientation-warning p { font-size: 2em; margin-bottom: 20px; }
+
+
+    /* --- Landscape Mode: Show game elements, hide warning and character select --- */
+    @media (orientation: landscape) {
+        #characterSelectScreen, /* Hide character select in landscape if playing */
+        #orientation-warning {
+            display: none;
+        }
+
+        .game-container,
+        #ui-container,
+        .action-button,
+        #debuggerDisplay {
+            display: flex; /* Adjust to block/flex as needed for specific containers */
+        }
+        canvas {
+          display: block; /* Ensure canvas is shown */
+        }
+        #score, #gameOver {
+            display: block;
+        }
+        .action-button {
+            display: flex;
+        }
+        #debuggerDisplay {
+            display: flex;
+        }
+    }
+
+    /* UI element positioning specific to landscape */
     #score {
       position: absolute;
-      top: 90px; /* MOVED DOWN: Underneath debugger */
+      top: 90px;
       left: 50%;
       transform: translateX(-50%);
-      background: var(--ui-score-bg); /* Now uses dynamic UI background */
-      color: var(--ui-text-main); /* Now uses dynamic UI text color */
+      background: var(--ui-score-bg);
+      color: var(--ui-text-main);
       padding: 10px 20px;
       font-weight: bold;
       border-radius: 25px;
       font-size: 18px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      transition: background-color 0.5s ease, color 0.5s ease; /* Smooth transition */
+      transition: background-color 0.5s ease, color 0.5s ease;
     }
     .action-button {
       position: absolute;
-      bottom: 25px;
+      bottom: 50px; /* Adjusted for landscape thumb position */
       width: 90px;
       height: 90px;
-      color: var(--ui-text-main); /* Now uses dynamic UI text color */
+      color: var(--ui-text-main);
       border: 4px solid var(--button-border-color);
       border-radius: 50%;
       font-size: 22px;
@@ -105,8 +184,8 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      background-color: var(--ui-button-bg); /* Now uses dynamic button background */
-      transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease; /* Smooth transition */
+      background-color: var(--ui-button-bg);
+      transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
     }
     #jumpButton {
       right: 25px;
@@ -115,70 +194,55 @@
       left: 25px;
     }
     #gameOver {
-      background: var(--ui-gameover-bg); /* Now uses dynamic game over background */
-      color: var(--ui-text-main); /* Now uses dynamic UI text color */
+      background: var(--ui-gameover-bg);
+      color: var(--ui-text-main);
       padding: 30px;
       border-radius: 15px;
       text-align: center;
-      display: none;
+      display: none; /* Controlled by JS */
       pointer-events: auto;
       width: 250px;
-      transition: background-color 0.5s ease, color 0.5s ease; /* Smooth transition */
-      z-index: 200; /* Ensure it's on top of everything else */
+      transition: background-color 0.5s ease, color 0.5s ease;
+      z-index: 200;
     }
     #gameOver h2 {
         margin-top: 0;
-        color: var(--ui-gameover-h2); /* Now uses dynamic game over H2 color */
+        color: var(--ui-gameover-h2);
         font-size: 2em;
-        transition: color 0.5s ease; /* Smooth transition */
+        transition: color 0.5s ease;
     }
     #restartBtn {
       padding: 12px 25px;
       font-size: 16px;
-      background: var(--ui-button-bg); /* Now uses dynamic button background */
-      color: var(--ui-text-main); /* Now uses dynamic UI text color */
+      background: var(--ui-button-bg);
+      color: var(--ui-text-main);
       border: none;
       border-radius: 20px;
       cursor: pointer;
       margin-top: 15px;
       font-weight: bold;
-      transition: background-color 0.5s ease, color 0.5s ease; /* Smooth transition */
+      transition: background-color 0.5s ease, color 0.5s ease;
     }
-    /* #dayNightToggle Removed */
-    #debuggerDisplay { /* New debugger style */
+    #debuggerDisplay {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
-        height: 80px; /* Height */
-        background-color: rgba(0, 128, 0, 0.7); /* Green with transparency */
+        height: 80px;
+        background-color: rgba(0, 128, 0, 0.7);
         color: white;
         font-family: 'Courier New', monospace;
-        font-size: 11px; /* Slightly smaller font to fit more lines */
+        font-size: 11px;
         padding: 5px;
         box-sizing: border-box;
-        overflow: hidden; /* Hide overflow if text is too long */
-        white-space: pre-wrap; /* Preserve whitespace and wrap text */
-        z-index: 90; /* Below UI, above canvas */
-        pointer-events: none; /* Allows clicks to pass through to game/buttons */
-        display: flex; /* For vertical alignment */
-        align-items: flex-start; /* Align content to top */
+        overflow: hidden;
+        white-space: pre-wrap;
+        z-index: 90;
+        pointer-events: none;
+        display: flex; /* Controlled by landscape media query */
+        align-items: flex-start;
         line-height: 1.2;
         text-align: left;
-    }
-    #orientation-warning {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: #111; color: #fff; z-index: 200;
-      justify-content: center; align-items: center;
-      text-align: center; font-size: 18px;
-    }
-    #orientation-warning p { font-size: 2em; margin-bottom: 20px; }
-    @media (orientation: landscape) {
-      #orientation-warning { display: flex; flex-direction: column; }
-      /* Ensure game elements are hidden in landscape for warning */
-      .game-container, #ui-container, .action-button, #debuggerDisplay { display: none; } /* Removed dayNightToggle here too */
     }
   </style>
 </head>
@@ -186,22 +250,23 @@
   <div class="game-container">
     <canvas id="gameCanvas"></canvas>
   </div>
+
+  <div id="characterSelectScreen">
+    <h2>اختر شخصيتك</h2> <div class="character-grid">
+      </div>
+    <button id="start-game-btn">ابدأ اللعب</button> <p class="coming-soon-text">مزيد من الشخصيات قريباً</p> </div>
+
   <div id="ui-container">
-    <div id="score">Score: 0</div>
-    <div id="gameOver">
-      <h2>Game Over!</h2>
-      <p>Final Score: <span id="finalScore">0</span></p>
-      <p>Best Score: <span id="bestScore">0</span></p>
-      <button id="restartBtn">Play Again</button>
-    </div>
+    <div id="score">نقاط: 0 ليرة سوري</div> <div id="gameOver">
+      <h2>انتهت اللعبة!</h2> <p>النتيجة النهائية: <span id="finalScore">0</span></p> <p>أفضل نتيجة: <span id="bestScore">0</span></p> <button id="restartBtn">العب مرة أخرى</button> </div>
   </div>
-  <button id="jumpButton" class="action-button">JUMP</button>
-  <button id="duckButton" class="action-button">DUCK</button>
-  <div id="debuggerDisplay">Debugger: Initializing...</div>
+
+  <button id="jumpButton" class="action-button">نط</button> <button id="duckButton" class="action-button">طخّي</button> <div id="debuggerDisplay">Debugger: Initializing...</div>
+  
   <div id="orientation-warning">
     <div>
         <p>🔄</p>
-        Please rotate your device to portrait mode.
+        الرجاء تدوير جهازك إلى الوضع الأفقي للعب.
     </div>
   </div>
   <script src="game.js"></script>
