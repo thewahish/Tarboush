@@ -409,8 +409,8 @@ class Game {
         localStorage.setItem('tarboushBestScore', this.bestScore);
     }
     this.updateBestScoreDisplay();
-    this.gameOverScreen.style.display = 'block';
-    this.updateDebugger(`Game Over. Final Score: ${Math.floor(this.score)}`);
+    this.gameOverScreen.style.display = 'block'; // Make game over screen visible
+    this.updateDebugger(`Game Over. Final Score: ${Math.floor(this.score)}. Tap 'Play Again'`);
   }
 
   restart() {
@@ -421,15 +421,18 @@ class Game {
     this.player.jumping = false; this.jumpRequested = false;
     this.obstacles = []; this.setNextSpawnDistance();
     this.updateScoreDisplay();
-    this.gameOverScreen.style.display = 'none';
+    this.gameOverScreen.style.display = 'none'; // Hide game over screen
     this.updateDebugger('Game restarted. Good luck!');
   }
 
   updateBestScoreDisplay() { this.bestScoreDisplay.textContent = this.bestScore; }
 
   gameLoop() {
+    // This debugger message will be overwritten quickly by update() if game is running
+    // this.updateDebugger(`gameLoop started. Game Running: ${this.gameRunning}`); 
+
     if (!this.gameRunning) {
-        return;
+        return; // Stop the loop if game is not running
     }
     try {
         this.update();
