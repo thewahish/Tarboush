@@ -66,6 +66,17 @@ class Game {
     this.updateBestScoreDisplay();
     this.setNextSpawnDistance();
     this.gameLoop();
+
+    // --- NEW: Debugger Setup ---
+    this.debuggerDisplay = document.getElementById('debuggerDisplay');
+    // Wrap the entire Game constructor logic in a try-catch to catch early errors
+    try {
+        this.updateDebugger('Game initialized.');
+    } catch (e) {
+        this.updateDebugger(`Error during init: ${e.message}`);
+        console.error("Error during Game initialization:", e);
+        this.gameRunning = false; // Stop game if init fails
+    }
   }
 
   setupCanvas() {
@@ -89,20 +100,23 @@ class Game {
     return clouds;
   }
 
-  // --- NEW: Helper to get current theme color for canvas drawing ---
   _getColor(colorName) {
     const mode = this.isNightMode ? 'night' : 'day';
     return this.themeColors[mode][colorName];
   }
 
-  // --- NEW: Toggle Day/Night Mode ---
   toggleDayNight() {
     this.isNightMode = !this.isNightMode;
     document.body.classList.toggle('night-mode', this.isNightMode);
-    // Update score display to refresh its background/text color from CSS
     this.updateScoreDisplay();
-    // Re-draw immediately to apply color changes
     this.draw();
+  }
+
+  // --- NEW: Update Debugger Display Method ---
+  updateDebugger(message) {
+      if (this.debuggerDisplay) {
+          this.debuggerDisplay.textContent = `Debugger: ${message}`;
+      }
   }
 
   bindEvents() {
@@ -110,7 +124,6 @@ class Game {
         if (this.gameRunning) {
             if (!this.player.isDucking) {
                 this.jumpRequested = true;
-                // Jump no longer provides points on its own.
             }
         } else {
             this.restart();
@@ -124,27 +137,51 @@ class Game {
     };
     const duckEnd = () => { this.player.isDucking = false; };
 
-    document.addEventListener('keydown', (e) => {
-      if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); handleAction(); }
-      else if (e.key === 'ArrowDown') { e.preventDefault(); duckStart(); }
-    });
-    document.addEventListener('keyup', (e) => {
-        if (e.key === 'ArrowDown') { e.preventDefault(); duckEnd(); }
-    });
+    try { // Wrap event binding in try-catch for debugging
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); handleAction(); }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); duckStart(); }
+        });
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); duckEnd(); }
+        });
 
-    document.getElementById('jumpButton').addEventListener('click', handleAction);
-    document.getElementById('jumpButton').addEventListener('touchstart', (e) => { e.preventDefault(); handleAction(); });
-    document.getElementById('duckButton').addEventListener('mousedown', (e) => { e.preventDefault(); duckStart(); });
-    document.getElementById('duckButton').addEventListener('mouseup', (e) => { e.preventDefault(); duckEnd(); });
-    document.getElementById('duckButton').addEventListener('touchstart', (e) => { e.preventDefault(); duckStart(); });
-    document.getElementById('duckButton').addEventListener('touchend', (e) => { e.preventDefault(); duckEnd(); });
+        const jumpButton = document.getElementById('jumpButton');
+        if (jumpButton) {
+            jumpButton.addEventListener('click', handleAction);
+            jumpButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleAction(); });
+        } else {
+            this.updateDebugger("Error: jumpButton not found!");
+            console.error("Error: jumpButton not found!");
+        }
 
-    document.getElementById('restartBtn').addEventListener('click', () => this.restart());
-    // --- NEW: Bind day/night toggle button ---
-    document.getElementById('dayNightToggle').addEventListener('click', () => this.toggleDayNight());
-    document.getElementById('dayNightToggle').addEventListener('touchstart', (e) => { e.preventDefault(); this.toggleDayNight(); });
+        const duckButton = document.getElementById('duckButton');
+        if (duckButton) {
+            duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); duckStart(); });
+            duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); duckEnd(); });
+            duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); duckStart(); });
+            duckButton.addEventListener('touchend', (e) => { e.preventDefault(); duckEnd(); });
+        } else {
+            this.updateDebugger("Error: duckButton not found!");
+            console.error("Error: duckButton not found!");
+        }
 
-    window.addEventListener('resize', () => this.setupCanvas());
+        document.getElementById('restartBtn').addEventListener('click', () => this.restart());
+        const dayNightToggle = document.getElementById('dayNightToggle');
+        if (dayNightToggle) {
+            dayNightToggle.addEventListener('click', () => this.toggleDayNight());
+            dayNightToggle.addEventListener('touchstart', (e) => { e.preventDefault(); this.toggleDayNight(); });
+        } else {
+            this.updateDebugger("Error: dayNightToggle not found!");
+            console.error("Error: dayNightToggle not found!");
+        }
+
+        window.addEventListener('resize', () => this.setupCanvas());
+        this.updateDebugger('Events bound successfully.');
+    } catch (e) {
+        this.updateDebugger(`Error binding events: ${e.message}`);
+        console.error("Error binding events:", e);
+    }
   }
 
   setNextSpawnDistance() {
@@ -178,71 +215,83 @@ class Game {
   }
 
   update() {
-    if (!this.gameRunning) return;
-
-    this.distance += this.speed;
-
-    const currentTotalSteps = Math.floor(this.distance);
-    const stepsSinceLastScore = currentTotalSteps - this.lastScoredDistance;
-
-    if (stepsSinceLastScore >= 100) {
-        this.score += Math.floor(stepsSinceLastScore / 100);
-        this.lastScoredDistance += Math.floor(stepsSinceLastScore / 100) * 100;
-        this.updateScoreDisplay();
+    if (!this.gameRunning) {
+        this.updateDebugger(`Game Over. Score: ${Math.floor(this.score)}`);
+        return;
     }
 
-    if (this.jumpRequested && this.player.grounded) {
-        this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
-    }
+    try { // Wrap update logic in try-catch for debugging
+        this.distance += this.speed;
 
-    this.player.velY += 0.6; this.player.y += this.player.velY;
+        const currentTotalSteps = Math.floor(this.distance);
+        const stepsSinceLastScore = currentTotalSteps - this.lastScoredDistance;
 
-    if (this.player.y >= this.groundY - this.player.height) {
-        this.player.y = this.groundY - this.player.height; this.player.velY = 0;
-        this.player.jumping = false; this.player.grounded = true;
-    }
-
-    this.speed += 0.001;
-    if (this.distanceToNextSpawn-- <= 0) this.spawnObstacles();
-    
-    for (let i = this.obstacles.length - 1; i >= 0; i--) {
-        const obs = this.obstacles[i];
-        obs.x -= this.speed;
-
-        if (obs.type === 'bird') obs.y = this.groundY - 80;
-        else if (obs.type === 'swooping_bird') {
-            if(!obs.y) obs.y = this.groundY - 150; obs.y += obs.vy;
-        }
-        else if (obs.type === 'low_missile') obs.y = this.groundY - 65;
-        else obs.y = this.groundY - obs.h;
-        
-        const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
-        const playerHitbox = {
-            x: this.player.x + hitbox.x_offset, y: this.player.y + hitbox.y_offset,
-            width: hitbox.width, height: hitbox.height
-        };
-      
-        if (playerHitbox.x < obs.x + obs.w && playerHitbox.x + playerHitbox.width > obs.x &&
-            playerHitbox.y < obs.y + obs.h && playerHitbox.y + playerHitbox.height > obs.y) {
-            this.gameOver();
-        }
-
-        if (!obs.scored && obs.x + obs.w < this.player.x) {
-            this.score += 10;
-            obs.scored = true;
+        if (stepsSinceLastScore >= 100) {
+            this.score += Math.floor(stepsSinceLastScore / 100);
+            this.lastScoredDistance += Math.floor(stepsSinceLastScore / 100) * 100;
             this.updateScoreDisplay();
         }
 
-        if (obs.x + obs.w < 0) {
-            this.obstacles.splice(i, 1);
+        if (this.jumpRequested && this.player.grounded) {
+            this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
         }
-    }
 
-    this.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) c.x = this.canvas.width; });
-    if (this.player.jumping) this.jumpRequested = false;
+        this.player.velY += 0.6; this.player.y += this.player.velY;
+
+        if (this.player.y >= this.groundY - this.player.height) {
+            this.player.y = this.groundY - this.player.height; this.player.velY = 0;
+            this.player.jumping = false; this.player.grounded = true;
+        }
+
+        this.speed += 0.001;
+        if (this.distanceToNextSpawn-- <= 0) this.spawnObstacles();
+        
+        for (let i = this.obstacles.length - 1; i >= 0; i--) {
+            const obs = this.obstacles[i];
+            obs.x -= this.speed;
+
+            if (obs.type === 'bird') obs.y = this.groundY - 80;
+            else if (obs.type === 'swooping_bird') {
+                if(!obs.y) obs.y = this.groundY - 150; obs.y += obs.vy;
+            }
+            else if (obs.type === 'low_missile') obs.y = this.groundY - 65;
+            else obs.y = this.groundY - obs.h;
+            
+            const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
+            const playerHitbox = {
+                x: this.player.x + hitbox.x_offset, y: this.player.y + hitbox.y_offset,
+                width: hitbox.width, height: hitbox.height
+            };
+          
+            if (playerHitbox.x < obs.x + obs.w && playerHitbox.x + playerHitbox.width > obs.x &&
+                playerHitbox.y < obs.y + obs.h && playerHitbox.y + playerHitbox.height > obs.y) {
+                this.gameOver();
+            }
+
+            if (!obs.scored && obs.x + obs.w < this.player.x) {
+                this.score += 10;
+                obs.scored = true;
+                this.updateScoreDisplay();
+            }
+
+            if (obs.x + obs.w < 0) {
+                this.obstacles.splice(i, 1);
+            }
+        }
+
+        this.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) c.x = this.canvas.width; });
+        if (this.player.jumping) this.jumpRequested = false;
+
+        // --- NEW: Update debugger with live data ---
+        this.updateDebugger(`Score: ${Math.floor(this.score)} | Speed: ${this.speed.toFixed(2)} | Player Y: ${Math.floor(this.player.y)}`);
+
+    } catch (e) {
+        this.updateDebugger(`Error in update(): ${e.message}`);
+        console.error("Error in update():", e);
+        this.gameRunning = false; // Stop game on error
+    }
   }
   
-  // --- UPDATED: Draw Player with theme colors ---
   drawPlayer(px, py) {
     const ctx = this.ctx;
     const tarboushColor = this._getColor('playerTarboush');
@@ -275,7 +324,6 @@ class Game {
     ctx.fill();
   }
 
-  // --- UPDATED: Draw elements with theme colors ---
   draw() {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear entire canvas
@@ -338,6 +386,7 @@ class Game {
     }
     this.updateBestScoreDisplay();
     this.gameOverScreen.style.display = 'block';
+    this.updateDebugger(`Game Over. Final Score: ${Math.floor(this.score)}`);
   }
 
   restart() {
@@ -349,10 +398,35 @@ class Game {
     this.obstacles = []; this.setNextSpawnDistance();
     this.updateScoreDisplay();
     this.gameOverScreen.style.display = 'none';
+    this.updateDebugger('Game restarted.');
   }
 
   updateBestScoreDisplay() { this.bestScoreDisplay.textContent = this.bestScore; }
-  gameLoop() { this.update(); this.draw(); requestAnimationFrame(() => this.gameLoop()); }
+
+  gameLoop() {
+    try { // Wrap gameLoop in try-catch
+        this.update();
+        this.draw();
+        requestAnimationFrame(() => this.gameLoop());
+    } catch (e) {
+        this.updateDebugger(`Error in gameLoop: ${e.message}`);
+        console.error("Error in gameLoop:", e);
+        this.gameRunning = false; // Stop the loop on error
+    }
+  }
 }
 
-window.addEventListener('load', () => new Game());
+// Wrap the game initialization in a window.addEventListener('load') to ensure all DOM elements are ready
+// Also add a try-catch for the initial load to catch immediate errors
+window.addEventListener('load', () => {
+    try {
+        new Game();
+    } catch (e) {
+        // If debuggerDisplay isn't ready yet, log to console as fallback
+        const debuggerElem = document.getElementById('debuggerDisplay');
+        if (debuggerElem) {
+            debuggerElem.textContent = `CRITICAL Error: ${e.message}. See console.`;
+        }
+        console.error("Critical error during game initialization on load:", e);
+    }
+});
