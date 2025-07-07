@@ -8,7 +8,7 @@ class Game {
     this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
     this.speed = 3;
     this.distance = 0;
-    this.lastScoredDistance = 0; // New: To track distance for scoring
+    this.lastScoredDistance = 0; // To track distance for scoring
 
     this.player = {
       x: 100, y: 0, width: 40, height: 60,
@@ -70,11 +70,7 @@ class Game {
         if (this.gameRunning) {
             if (!this.player.isDucking) {
                 this.jumpRequested = true;
-                // --- SCORING CHANGE: 5 points every jump ---
-                if (this.player.grounded) { // Only award points if actually starting a jump from grounded state
-                    this.score += 5;
-                    this.updateScoreDisplay();
-                }
+                // Jump no longer provides points on its own.
             }
         } else {
             this.restart();
@@ -144,14 +140,13 @@ class Game {
     // Update distance
     this.distance += this.speed;
 
-    // --- SCORING CHANGE: 1 point per every 10 steps (distance travelled) ---
-    // Check if we've covered another 10 steps since the last score increment
+    // SCORING: 1 point per every 100 steps
     const currentTotalSteps = Math.floor(this.distance);
     const stepsSinceLastScore = currentTotalSteps - this.lastScoredDistance;
 
-    if (stepsSinceLastScore >= 10) {
-        this.score += Math.floor(stepsSinceLastScore / 10); // Add points for every full 10 steps
-        this.lastScoredDistance += Math.floor(stepsSinceLastScore / 10) * 10; // Update last scored distance in multiples of 10
+    if (stepsSinceLastScore >= 100) { // Check for every 100 steps
+        this.score += Math.floor(stepsSinceLastScore / 100); // Add points for every full 100 steps
+        this.lastScoredDistance += Math.floor(stepsSinceLastScore / 100) * 100; // Update last scored distance in multiples of 100
         this.updateScoreDisplay();
     }
 
@@ -192,9 +187,9 @@ class Game {
             this.gameOver();
         }
 
-        // --- SCORING: 10 points per obstacle when player passes it (unchanged) ---
+        // SCORING CHANGE: 10 points per obstacle (reverted)
         if (!obs.scored && obs.x + obs.w < this.player.x) {
-            this.score += 10;
+            this.score += 10; // Back to 10 points per obstacle
             obs.scored = true;
             this.updateScoreDisplay();
         }
