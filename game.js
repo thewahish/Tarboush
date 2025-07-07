@@ -104,9 +104,10 @@ class Game {
   }
 
   setNextSpawnDistance() {
-      // Significantly reduced distance between obstacles for more frequent spawns
-      const min = 150;
-      const max = 300;
+      // --- GAMEPLAY CHANGE: Reduced distance between obstacles by half ---
+      // Old values were min = 150, max = 300
+      const min = 75; // Half of 150
+      const max = 150; // Half of 300
       this.distanceToNextSpawn = Math.floor(Math.random() * (max - min + 1) + min);
   }
 
@@ -187,9 +188,9 @@ class Game {
             this.gameOver();
         }
 
-        // SCORING CHANGE: 10 points per obstacle (reverted)
+        // SCORING: 10 points per obstacle
         if (!obs.scored && obs.x + obs.w < this.player.x) {
-            this.score += 10; // Back to 10 points per obstacle
+            this.score += 10;
             obs.scored = true;
             this.updateScoreDisplay();
         }
