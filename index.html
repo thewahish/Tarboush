@@ -49,30 +49,24 @@
       transition: background-color 0.5s ease;
     }
 
-    /* --- Default state for all UI elements (managed by JS) --- */
-    /* They are given a display type (flex/block) here, but JS will set display: none or display: flex/block */
-    .game-container,
-    #ui-container,
-    .action-button,
-    #debuggerDisplay,
-    #characterSelectScreen,
-    #gameOver,
-    #orientation-warning {
-        position: absolute; /* All position:absolute for JS control */
-        top: 0; left: 0; width: 100%; height: 100%; /* Default full screen covering */
-        box-sizing: border-box; /* Include padding/border in width/height */
-        display: none; /* Hidden by default, JS controls visibility */
+    /* --- Base display properties for all major UI components (JS will control display:none/flex/block) --- */
+    .game-container, #ui-container, .action-button, #debuggerDisplay,
+    #characterSelectScreen, #gameOver, #orientation-warning {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        box-sizing: border-box;
+        display: none; /* Initially hidden, JS will show what's needed */
     }
 
-    /* Specific element display types when shown by JS */
-    .game-container { display: flex; justify-content: center; align-items: center; }
-    #ui-container { display: flex; justify-content: center; align-items: center; pointer-events: none; }
-    .action-button { display: flex; justify-content: center; align-items: center; pointer-events: auto; }
-    #debuggerDisplay { display: flex; align-items: flex-start; text-align: left; }
-    #characterSelectScreen { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
-    #gameOver { display: block; text-align: center; padding: 30px; } /* Game over is a block dialog */
-    #score { display: block; /* Score is a block element within ui-container */ }
-    canvas { display: block; /* Canvas is a block element */ }
+    /* Specific display types when they are made visible by JS */
+    .game-container { justify-content: center; align-items: center; } /* flex is set by JS */
+    #ui-container { justify-content: center; align-items: center; pointer-events: none; } /* flex is set by JS */
+    .action-button { justify-content: center; align-items: center; pointer-events: auto; } /* flex is set by JS */
+    #debuggerDisplay { align-items: flex-start; text-align: left; } /* flex is set by JS */
+    #characterSelectScreen { flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; } /* flex is set by JS */
+    #gameOver { text-align: center; padding: 30px; } /* block is set by JS */
+    #score { /* block is set by JS */ }
+    canvas { /* block is set by JS */ }
 
 
     #characterSelectScreen h2 {
@@ -80,11 +74,11 @@
     }
     .character-grid {
         display: grid;
-        grid-template-columns: repeat(2, 1fr); /* 2 columns for characters */
+        grid-template-columns: repeat(2, 1fr);
         gap: 15px;
         margin-bottom: 30px;
-        max-width: 300px; /* Limit grid width */
-        margin-left: auto; /* Center grid */
+        max-width: 300px;
+        margin-left: auto;
         margin-right: auto;
     }
     .character-slot {
@@ -98,8 +92,9 @@
     .character-slot.available {
         background: var(--syrian-green); cursor: pointer;
     }
-    .character-slot.available:hover {
+    .character-slot.available:hover, .character-slot.selected { /* Added selected state */
         transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+        background: var(--revolutionary-red); /* Highlight selected char */
     }
     .character-slot.grayed-out {
         background: #555; opacity: 0.7;
@@ -149,7 +144,7 @@
     }
     .action-button {
       position: absolute;
-      bottom: 50px; /* Adjusted for landscape thumb position */
+      bottom: 50px;
       width: 90px;
       height: 90px;
       color: var(--ui-text-main);
