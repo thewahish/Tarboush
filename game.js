@@ -21,26 +21,14 @@ class Game {
     console.log("[Constructor DEBUG] Starting Game constructor."); 
 
     try {
-        this.canvas = document.getElementById('gameCanvas');
-        console.log("[Constructor DEBUG] Canvas element:", this.canvas);
-        if (!this.canvas) {
-            throw new Error("Canvas element #gameCanvas not found!");
-        }
-        this.ctx = this.canvas.getContext('2d');
-        console.log("[Constructor DEBUG] Canvas context:", this.ctx);
-        if (!this.ctx) {
-            throw new Error("Failed to get 2D rendering context for canvas.");
-        }
-
+        // --- 1. Basic property initialization ---
         this.gameRunning = false; // Game starts as not running, waiting for character select
         this.score = 0;
         this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
         this.speed = 3;
         this.distance = 0;
         this.lastScoredDistance = 0;
-
-        // --- CHANGE: Day/Night toggle every 500 points ---
-        this.nextThemeToggleScore = 500; 
+        this.nextThemeToggleScore = 500; // Day/Night toggle every 500 points
 
         this.player = {
             x: 100, y: 0, width: 40, height: 60,
@@ -52,32 +40,19 @@ class Game {
         this.isNightMode = false;
         this.themeColors = {
           day: {
-            ground: '#A0522D',
-            cloud: 'rgba(255,255,255,0.8)',
-            playerTarboush: '#CE1126',
-            playerBody: '#FFFFFF',
-            playerSkin: '#FDBCB4',
-            playerDetail: '#000000',
-            obstacleGreen: '#007A3D',
-            obstacleBlack: '#000000',
-            obstacleGrey: '#696969',
+            ground: '#A0522D', cloud: 'rgba(255,255,255,0.8)', playerTarboush: '#CE1126',
+            playerBody: '#FFFFFF', playerSkin: '#FDBCB4', playerDetail: '#000000',
+            obstacleGreen: '#007A3D', obstacleBlack: '#000000', obstacleGrey: '#696969',
             obstacleMissileFlame: '#FF4500',
           },
           night: {
-            ground: '#5A2C10',
-            cloud: 'rgba(200,200,200,0.2)',
-            playerTarboush: '#990B1E',
-            playerBody: '#BBBBBB',
-            playerSkin: '#A17B74',
-            playerDetail: '#EEEEEE',
-            obstacleGreen: '#004D27',
-            obstacleBlack: '#AAAAAA',
-            obstacleGrey: '#333333',
+            ground: '#5A2C10', cloud: 'rgba(200,200,200,0.2)', playerTarboush: '#990B1E',
+            playerBody: '#BBBBBB', playerSkin: '#A17B74', playerDetail: '#EEEEEE',
+            obstacleGreen: '#004D27', obstacleBlack: '#AAAAAA', obstacleGrey: '#333333',
             obstacleMissileFlame: '#E68A00',
           }
         };
 
-        // --- NEW: Character Data (using placeholder.com for image URLs) ---
         this.characters = [
             { id: 'shami_abu_tarboush', name: 'شامي أبو طربوش', available: true, image: 'https://via.placeholder.com/60/CE1126/FFFFFF?text=ش' },
             { id: 'fatom_hays_bays', name: 'فطوم حيص بيص', available: false, image: 'https://via.placeholder.com/60/007A3D/FFFFFF?text=ف' },
@@ -87,61 +62,68 @@ class Game {
         ];
         this.selectedCharacterId = 'shami_abu_tarboush'; // Default selected character
 
-        this.setupCanvas(); // Sets up canvas dimensions and groundY
+        // --- 2. Get Canvas and Context ---
+        this.canvas = document.getElementById('gameCanvas');
+        console.log("[Constructor DEBUG] Canvas element:", this.canvas);
+        if (!this.canvas) throw new Error("Canvas element #gameCanvas not found!");
+        this.ctx = this.canvas.getContext('2d');
+        console.log("[Constructor DEBUG] Canvas context:", this.ctx);
+        if (!this.ctx) throw new Error("Failed to get 2D rendering context for canvas.");
 
-        // --- Get all relevant UI elements by ID (now including separate gameOver) ---
+        // --- 3. Get all relevant UI element references ---
         this.scoreDisplay = document.getElementById('score');
         if (!this.scoreDisplay) throw new Error("scoreDisplay element not found!");
         this.finalScoreDisplay = document.getElementById('finalScore');
         if (!this.finalScoreDisplay) throw new Error("finalScoreDisplay element not found!");
         this.bestScoreDisplay = document.getElementById('bestScore');
         if (!this.bestScoreDisplay) throw new Error("bestScoreDisplay element not found!");
-        this.gameOverScreen = document.getElementById('gameOver'); // Moved outside ui-container
+        this.gameOverScreen = document.getElementById('gameOver');
         if (!this.gameOverScreen) throw new Error("gameOverScreen element not found!");
         this.characterSelectScreen = document.getElementById('characterSelectScreen');
         if (!this.characterSelectScreen) throw new Error("characterSelectScreen element not found!");
-        this.gameContainer = document.querySelector('.game-container'); // Get game container for visibility
+        this.gameContainer = document.querySelector('.game-container');
         if (!this.gameContainer) throw new Error("Game container element not found!");
-        this.uiContainer = document.getElementById('ui-container'); // Get UI container (now primarily just score)
+        this.uiContainer = document.getElementById('ui-container');
         if (!this.uiContainer) throw new Error("UI container element not found!");
         this.jumpButton = document.getElementById('jumpButton');
         if (!this.jumpButton) throw new Error("jumpButton element not found!");
         this.duckButton = document.getElementById('duckButton');
         if (!this.duckButton) throw new Error("duckButton element not found!");
-        this.restartBtn = document.getElementById('restartBtn'); // Get restart button (inside game over)
-        if (!this.restartBtn) throw new Error("restartBtn not found!");
-        this.startGameBtn = document.getElementById('start-game-btn'); // Get start game button (character select)
+        this.restartBtn = document.getElementById('restartBtn');
+        if (!this.restartBtn) throw new Error("restartBtn element not found!");
+        this.startGameBtn = document.getElementById('start-game-btn');
         if (!this.startGameBtn) throw new Error("start-game-btn not found!");
-        this.orientationWarning = document.getElementById('orientation-warning'); // Get orientation warning
+        this.orientationWarning = document.getElementById('orientation-warning');
         if (!this.orientationWarning) throw new Error("orientation-warning element not found!");
 
-
+        // --- 4. Game state dependent setup (uses elements gathered above) ---
+        this.setupCanvas(); // Sets canvas dimensions and groundY
         this.obstacles = [];
         this.distanceToNextSpawn = 0;
         this.obstaclePatterns = [
-            { type: 'single_cactus', minSpeed: 0 },
-            { type: 'single_rock', minSpeed: 0 },
-            { type: 'spiky_bush', minSpeed: 3 },
-            { type: 'high_bird', minSpeed: 4 },
-            { type: 'double_rock', minSpeed: 5 },
-            { type: 'swooping_bird', minSpeed: 6 },
+            { type: 'single_cactus', minSpeed: 0 }, { type: 'single_rock', minSpeed: 0 },
+            { type: 'spiky_bush', minSpeed: 3 }, { type: 'high_bird', minSpeed: 4 },
+            { type: 'double_rock', minSpeed: 5 }, { type: 'swooping_bird', minSpeed: 6 },
             { type: 'low_missile', minSpeed: 7 }
         ];
-
         this.clouds = this.createClouds();
+
+        // --- 5. Bind events (now all elements are available) ---
         this.bindEvents(); // Sets up event listeners
+
+        // --- 6. Initial UI state and rendering ---
         this.updateBestScoreDisplay();
-        this.setNextSpawnDistance();
-        
-        // --- NEW: Game starts in character select state ---
-        this.currentGameState = 'characterSelect';
+        this.setNextSpawnDistance(); // Sets distance for first obstacle spawn
+        this.currentGameState = 'characterSelect'; // Game starts in character select state
         this.updateUIVisibility(); // Adjusts UI based on initial state
         this.renderCharacterSelectScreen(); // Populates character select UI
 
         console.log("[Constructor DEBUG] Game init success. currentGameState:", this.currentGameState);
         this.updateDebugger(`Game init success. State: ${this.currentGameState}`);
 
-        this.gameLoop(); // Starts the main loop, but it will pause in 'characterSelect' state.
+        // --- 7. Start the main game loop (it will pause/unpause based on currentGameState) ---
+        this.gameLoop(); 
+        console.log("[Constructor DEBUG] gameLoop() called. Constructor finishing.");
 
     } catch (e) {
         console.error("Error during Game initialization (caught by constructor):", e);
