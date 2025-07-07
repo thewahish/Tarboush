@@ -66,16 +66,11 @@
     #debuggerDisplay { align-items: flex-start; text-align: left; }
     #characterSelectScreen { flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding-top: 50px; } /* Adjusted padding-top for title */
     #gameOver { display: flex; justify-content: center; align-items: center; pointer-events: auto; z-index: 200; } /* Make game over screen a flex container to center its content */
-    #score { /* No specific flex/block needed here, it's inside #ui-container */ }
-    canvas { /* No specific flex/block needed here, it's inside .game-container */ }
+    /* #score and canvas rules removed as they were empty rulesets */
 
 
-    /* --- Character Select Screen Styling --- */
-    #characterSelectScreen h1 { /* Game Title */
-        font-size: 2.5em; margin-bottom: 20px; color: var(--syrian-black);
-    }
-    #characterSelectScreen h2 { /* Choose your character */
-        font-size: 1.8em; margin-bottom: 30px; color: var(--revolutionary-red);
+    #characterSelectScreen h2 {
+        font-size: 2.2em; margin-bottom: 30px; color: var(--revolutionary-red);
     }
     .character-grid {
         display: flex; /* Changed to flex for vertical list */
@@ -85,6 +80,8 @@
         margin-bottom: 30px;
         max-width: 300px; /* Max width for each item */
         width: 90%; /* Occupy most of the width */
+        margin-left: auto; /* Center grid */
+        margin-right: auto;
     }
     .character-slot {
         background: rgba(0,0,0,0.5); border-radius: 15px; padding: 15px; /* More padding, rounded corners */
@@ -100,7 +97,7 @@
     .character-slot.available {
         background: var(--syrian-green); cursor: pointer;
     }
-    .character-slot.available:hover, .character-slot.selected {
+    .character-slot.available:hover, .character-slot.selected { /* Added selected state */
         transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.3);
         background: var(--revolutionary-red);
     }
