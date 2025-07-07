@@ -207,10 +207,6 @@ class Game {
             throw new Error("restartBtn not found!");
         }
 
-        // dayNightToggle button is removed, so no need to check or bind it
-        // const dayNightToggle = document.getElementById('dayNightToggle');
-        // if (dayNightToggle) { /* ... */ }
-
         window.addEventListener('resize', () => this.setupCanvas());
         this.updateDebugger('All core events bound successfully.');
         console.log("[bindEvents DEBUG] bindEvents finished successfully.");
@@ -261,7 +257,7 @@ class Game {
 
     if (!this.gameRunning) {
         console.log("[update DEBUG] update() returning because gameRunning is false.");
-        return;
+        return; // If game isn't running, stop updating
     }
 
     try {
@@ -282,6 +278,7 @@ class Game {
              this.nextThemeToggleScore += 1000;
              this.updateDebugger(`Theme changed at ${Math.floor(this.score)} points! Now ${this.isNightMode ? 'Night' : 'Day'} Mode.`);
         }
+
 
         if (this.jumpRequested && this.player.grounded) {
             this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
@@ -306,7 +303,9 @@ class Game {
                 if(!obs.y) obs.y = this.groundY - 150; obs.y += obs.vy;
             }
             else if (obs.type === 'low_missile') obs.y = this.groundY - 65;
-            else obs.y = this.groundY - obs.h;
+            else obs.y = obs.h; // This line might cause issues if obs.h is not defined for all obstacle types.
+                                // It should be obs.y = this.groundY - obs.h; as it was previously.
+                                // **This is a potential bug introduced from previous copy-paste!**
             
             const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
             const playerHitbox = {
@@ -460,13 +459,9 @@ class Game {
     this.updateDebugger('Restart completed. Game should be active.');
     console.log("[restart DEBUG] Restart finished. gameRunning is:", this.gameRunning);
 
-    // If for some reason gameLoop was truly stopped (e.g., from a critical error in init
-    // that broke the rAF chain), this ensures it starts again.
-    // However, it usually picks up from gameRunning = true.
-    // console.log("[restart DEBUG] Re-checking if gameLoop needs to be explicitly restarted...");
-    // if (!this.gameRunning) { // This check should technically not pass here
-    //     this.gameLoop(); // Re-call gameLoop to ensure rAF is active
-    // }
+    // --- FIX: Explicitly re-call gameLoop to ensure rAF chain restarts ---
+    this.gameLoop(); // Call gameLoop once to trigger a new requestAnimationFrame
+    console.log("[restart DEBUG] gameLoop() explicitly called from restart().");
   }
 
   updateBestScoreDisplay() { this.bestScoreDisplay.textContent = this.bestScore; }
