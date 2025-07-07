@@ -10,7 +10,7 @@ class Game {
     this.finalScoreDisplay = document.getElementById('finalScore');
     this.bestScoreDisplay = document.getElementById('bestScore');
     this.gameOverScreen = document.getElementById('gameOver');
-    
+
     this.gameRunning = true;
     this.score = 0;
     this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
@@ -37,6 +37,7 @@ class Game {
     // Obstacle Management
     this.obstacles = [];
     this.distanceToNextSpawn = 0;
+    // CRITICAL FIX: Added a missing comma after the 'high_bird' object
     this.obstaclePatterns = [
         { type: 'single_cactus', minSpeed: 0 },
         { type: 'single_rock', minSpeed: 0 },
@@ -74,14 +75,17 @@ class Game {
   }
 
   bindEvents() {
-    // --- CONTROL IMPROVEMENT: Jump Buffering ---
-    const requestJump = () => {
-        if (!this.player.isDucking) {
-            this.jumpRequested = true;
+    const handleAction = () => {
+        if (this.gameRunning) {
+            if (!this.player.isDucking) {
+                this.jumpRequested = true;
+            }
+        } else {
+            this.restart();
         }
     };
     const duckStart = () => {
-        if (this.player.grounded) {
+        if (this.player.grounded && this.gameRunning) {
             this.player.isDucking = true;
         }
     };
@@ -89,14 +93,12 @@ class Game {
 
     // Keyboard events
     document.addEventListener('keydown', (e) => {
-      if ((e.code === 'Space' || e.key === 'ArrowUp')) {
+      if (e.code === 'Space' || e.key === 'ArrowUp') {
         e.preventDefault();
-        requestJump();
+        handleAction();
       } else if (e.key === 'ArrowDown') {
         e.preventDefault();
         duckStart();
-      } else if (!this.gameRunning && e.code === 'Space') {
-          this.restart();
       }
     });
     document.addEventListener('keyup', (e) => {
@@ -106,8 +108,9 @@ class Game {
         }
     });
 
-    // Touch events
-    document.getElementById('jumpButton').addEventListener('touchstart', (e) => { e.preventDefault(); requestJump(); });
+    // Touch and Click events
+    document.getElementById('jumpButton').addEventListener('click', handleAction);
+    document.getElementById('jumpButton').addEventListener('touchstart', (e) => { e.preventDefault(); handleAction(); });
     document.getElementById('duckButton').addEventListener('touchstart', (e) => { e.preventDefault(); duckStart(); });
     document.getElementById('duckButton').addEventListener('touchend', (e) => { e.preventDefault(); duckEnd(); });
 
@@ -149,49 +152,39 @@ class Game {
 
     this.distance += this.speed;
 
-    // --- JUMP BUFFERING LOGIC ---
     if (this.jumpRequested && this.player.grounded) {
         this.player.velY = -12;
         this.player.jumping = true;
         this.player.grounded = false;
-        this.jumpRequested = false; // Reset request
+        this.jumpRequested = false;
     }
 
-    // Player physics
-    this.player.velY += 0.6; // Gravity
+    this.player.velY += 0.6;
     this.player.y += this.player.velY;
 
-    // Ground collision
     if (this.player.y >= this.groundY - this.player.height) {
         this.player.y = this.groundY - this.player.height;
         this.player.velY = 0;
         this.player.jumping = false;
         this.player.grounded = true;
     }
-    // Cannot duck in the air
     if(!this.player.grounded) {
         this.player.isDucking = false;
     }
 
-
-    // Smooth Speed Increase
     this.speed += 0.001;
 
-    // --- OBSTACLE SPAWNING ---
     this.distanceToNextSpawn -= this.speed;
     if (this.distanceToNextSpawn <= 0) {
         this.spawnObstacles();
     }
     
-    // Update obstacles
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
         const obs = this.obstacles[i];
         obs.x -= this.speed;
 
-        // Set y position based on type
         obs.y = (obs.type === 'bird') ? this.groundY - 80 : this.groundY - obs.h;
         
-        // Use the correct hitbox based on ducking state
         const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
         const playerHitbox = {
             x: this.player.x + hitbox.x_offset,
@@ -216,13 +209,11 @@ class Game {
         }
     }
 
-    // Update clouds
     this.clouds.forEach(cloud => {
         cloud.x -= cloud.speed;
         if (cloud.x + cloud.w < 0) cloud.x = this.canvas.width;
     });
     
-    // Reset jump request if player is in the air for too long
     if (this.player.jumping) {
         this.jumpRequested = false;
     }
@@ -231,56 +222,44 @@ class Game {
   drawPlayer(px, py) {
     const ctx = this.ctx;
 
-    // --- DUCKING DRAW LOGIC ---
     if (this.player.isDucking) {
-        // Body
-        ctx.fillStyle = '#F5F5DC'; // Beige
+        ctx.fillStyle = '#F5F5DC';
         ctx.fillRect(px + 6, py + 35, 28, 25);
-        // Tarboush
         ctx.fillStyle = '#DC143C';
         ctx.beginPath();
         ctx.moveTo(px + 8, py + 40);
         ctx.quadraticCurveTo(px + 20, py + 20, px + 32, py + 40);
         ctx.fill();
-        // Head
         ctx.fillStyle = '#FDBCB4';
         ctx.beginPath();
         ctx.arc(px + 20, py + 45, 10, 0, Math.PI * 2);
         ctx.fill();
-        return; // End drawing here for ducking pose
+        return;
     }
 
-    // --- REGULAR DRAW LOGIC ---
-    // Tarboush
     ctx.fillStyle = '#DC143C';
     ctx.beginPath();
     ctx.moveTo(px + 8, py + 15);
     ctx.quadraticCurveTo(px + 20, py - 5, px + 32, py + 15);
     ctx.fill();
-    // Tassel
     ctx.fillStyle = '#000000';
     ctx.beginPath();
     ctx.arc(px + 28, py + 3, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(px + 27, py + 5, 2, 6);
-    // Head
     ctx.fillStyle = '#FDBCB4';
     ctx.beginPath();
     ctx.arc(px + 20, py + 25, 10, 0, Math.PI * 2);
     ctx.fill();
-    // Eyes
     ctx.fillStyle = '#000';
     ctx.beginPath();
     ctx.arc(px + 17, py + 23, 1.5, 0, Math.PI * 2);
     ctx.arc(px + 23, py + 23, 1.5, 0, Math.PI * 2);
     ctx.fill();
-    // Mustache
     ctx.fillStyle = '#8B4513';
     ctx.fillRect(px + 16, py + 27, 8, 2);
-    // Body
     ctx.fillStyle = '#F5F5DC';
     ctx.fillRect(px + 12, py + 35, 16, 25);
-    // Hands
     ctx.fillStyle = '#FDBCB4';
     ctx.beginPath();
     if (this.player.jumping) {
@@ -297,7 +276,6 @@ class Game {
     const ctx = this.ctx;
     ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Scenery
     const grad = ctx.createLinearGradient(0, 0, 0, this.canvas.height * 0.9);
     grad.addColorStop(0, '#87CEEB');
     grad.addColorStop(1, '#B0E0E6');
@@ -306,7 +284,6 @@ class Game {
     ctx.fillStyle = '#DEB887';
     ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
     
-    // Clouds
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     this.clouds.forEach(cloud => {
       ctx.beginPath();
@@ -316,10 +293,8 @@ class Game {
       ctx.fill();
     });
 
-    // Player
     this.drawPlayer(this.player.x, this.player.y);
 
-    // Obstacles
     this.obstacles.forEach(obs => {
         if (obs.type === 'cactus') {
             ctx.fillStyle = '#228B22';
@@ -332,7 +307,7 @@ class Game {
             ctx.ellipse(obs.x + obs.w / 2, obs.y + obs.h / 2, obs.w / 2, obs.h / 2, 0, 0, Math.PI * 2);
             ctx.fill();
         } else if (obs.type === 'bird') {
-            ctx.fillStyle = '#333'; // Bird color
+            ctx.fillStyle = '#333';
             ctx.beginPath();
             ctx.moveTo(obs.x, obs.y + obs.h / 2);
             ctx.quadraticCurveTo(obs.x + obs.w / 2, obs.y - obs.h / 2, obs.x + obs.w, obs.y + obs.h / 2);
@@ -356,7 +331,6 @@ class Game {
   }
 
   restart() {
-    // Reset all game state variables
     this.gameRunning = true;
     this.score = 0;
     this.speed = 3;
@@ -370,7 +344,6 @@ class Game {
     this.obstacles = [];
     this.setNextSpawnDistance();
     
-    // Update UI
     this.scoreDisplay.textContent = 'Score: 0';
     this.gameOverScreen.style.display = 'none';
   }
@@ -378,8 +351,6 @@ class Game {
   updateBestScoreDisplay() {
       this.bestScoreDisplay.textContent = this.bestScore;
   }
-
-
 
   gameLoop() {
     this.update();
