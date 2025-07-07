@@ -144,23 +144,7 @@
       font-weight: bold;
       transition: background-color 0.5s ease, color 0.5s ease; /* Smooth transition */
     }
-    #dayNightToggle { /* New button style */
-      position: absolute;
-      top: 90px; /* MOVED DOWN: Underneath debugger */
-      right: 15px;
-      background: var(--ui-score-bg);
-      color: var(--ui-text-main);
-      padding: 8px 12px;
-      font-weight: bold;
-      border-radius: 20px;
-      font-size: 16px;
-      cursor: pointer;
-      pointer-events: auto;
-      border: 2px solid var(--button-border-color); /* Uses button border color */
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      -webkit-tap-highlight-color: transparent;
-      transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease; /* Smooth transition */
-    }
+    /* #dayNightToggle Removed */
     #debuggerDisplay { /* New debugger style */
         position: absolute;
         top: 0;
@@ -194,7 +178,7 @@
     @media (orientation: landscape) {
       #orientation-warning { display: flex; flex-direction: column; }
       /* Ensure game elements are hidden in landscape for warning */
-      .game-container, #ui-container, .action-button, #dayNightToggle, #debuggerDisplay { display: none; }
+      .game-container, #ui-container, .action-button, #debuggerDisplay { display: none; } /* Removed dayNightToggle here too */
     }
   </style>
 </head>
@@ -213,7 +197,6 @@
   </div>
   <button id="jumpButton" class="action-button">JUMP</button>
   <button id="duckButton" class="action-button">DUCK</button>
-  <button id="dayNightToggle" class="toggle-button">🌙/☀️</button>
   <div id="debuggerDisplay">Debugger: Initializing...</div>
   <div id="orientation-warning">
     <div>
