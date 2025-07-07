@@ -4,7 +4,6 @@ class Game {
     // --- NEW: Debugger Setup - INITIALIZE FIRST ---
     this.debuggerDisplay = document.getElementById('debuggerDisplay');
     if (!this.debuggerDisplay) {
-        // Fallback to console if debugger display isn't available
         console.error("CRITICAL: Debugger display element #debuggerDisplay not found!");
     }
     this.updateDebugger("Initializing Game Class...");
@@ -35,6 +34,9 @@ class Game {
         this.distance = 0;
         this.lastScoredDistance = 0;
 
+        // --- NEW: Next score threshold for theme toggle ---
+        this.nextThemeToggleScore = 1000;
+
         // --- FIX: Player object defined BEFORE setupCanvas() ---
         this.player = {
             x: 100, y: 0, width: 40, height: 60,
@@ -44,7 +46,7 @@ class Game {
         };
         // --- END FIX ---
 
-        this.isNightMode = false;
+        this.isNightMode = false; // Starts in Day Mode by default
         this.themeColors = {
           day: {
             ground: '#A0522D',
@@ -117,7 +119,7 @@ class Game {
     this.canvas.width = maxW;
     this.canvas.height = maxH;
     this.groundY = maxH - 40;
-    this.player.y = this.groundY - this.player.height; // This line now works
+    this.player.y = this.groundY - this.player.height;
   }
 
   createClouds() {
@@ -142,7 +144,7 @@ class Game {
     document.body.classList.toggle('night-mode', this.isNightMode);
     this.updateScoreDisplay();
     this.draw(); // Redraw immediately to reflect theme changes
-    this.updateDebugger(`Day/Night toggled to ${this.isNightMode ? 'Night' : 'Day'} Mode.`);
+    // Debugger message is handled by update() when it runs
   }
 
   updateDebugger(message) {
@@ -189,16 +191,18 @@ class Game {
             throw new Error("restartBtn not found!");
         }
 
-        const dayNightToggle = document.getElementById('dayNightToggle');
-        if (dayNightToggle) {
-            dayNightToggle.addEventListener('click', () => this.toggleDayNight());
-            dayNightToggle.addEventListener('touchstart', (e) => { e.preventDefault(); this.toggleDayNight(); });
-        } else {
-            throw new Error("dayNightToggle not found!");
-        }
+        // Removed the day/night toggle button binding
+        // const dayNightToggle = document.getElementById('dayNightToggle');
+        // if (dayNightToggle) {
+        //     dayNightToggle.addEventListener('click', () => this.toggleDayNight());
+        //     dayNightToggle.addEventListener('touchstart', (e) => { e.preventDefault(); this.toggleDayNight(); });
+        // } else {
+        //     // This error is no longer critical as the button is removed
+        //     // console.warn("dayNightToggle button not found (expected if using auto toggle).");
+        // }
 
         window.addEventListener('resize', () => this.setupCanvas());
-        this.updateDebugger('All events bound successfully.');
+        this.updateDebugger('All core events bound successfully.');
     } catch (e) {
         this.updateDebugger(`ERROR binding events: ${e.message}. Game might not respond to input.`);
         console.error("Error binding events:", e);
@@ -237,8 +241,15 @@ class Game {
   }
 
   update() {
+    // This debugger log will reveal if update() is being entered
+    this.updateDebugger(
+        `Game Running: ${this.gameRunning} | Score: ${Math.floor(this.score)} | Speed: ${this.speed.toFixed(2)}\n` +
+        `Player Y: ${Math.floor(this.player.y)} | Obstacles: ${this.obstacles.length}\n` +
+        `Mode: ${this.isNightMode ? 'Night' : 'Day'}`
+    );
+
     if (!this.gameRunning) {
-        return;
+        return; // If game isn't running, stop updating
     }
 
     try {
@@ -252,6 +263,16 @@ class Game {
             this.lastScoredDistance += Math.floor(stepsSinceLastScore / 100) * 100;
             this.updateScoreDisplay();
         }
+
+        // --- NEW: Automatic Day/Night Toggle based on Score ---
+        const currentThousandBlock = Math.floor(this.score / 1000);
+        // We compare against `this.nextThemeToggleScore` to prevent repeated toggles within the same 1000-point block
+        if (this.score >= this.nextThemeToggleScore) {
+             this.toggleDayNight();
+             this.nextThemeToggleScore += 1000; // Set next target
+             this.updateDebugger(`Theme changed at ${Math.floor(this.score)} points! Now ${this.isNightMode ? 'Night' : 'Day'} Mode.`);
+        }
+
 
         if (this.jumpRequested && this.player.grounded) {
             this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
@@ -302,12 +323,6 @@ class Game {
 
         this.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) c.x = this.canvas.width; });
         if (this.player.jumping) this.jumpRequested = false;
-
-        this.updateDebugger(
-            `Score: ${Math.floor(this.score)} | Speed: ${this.speed.toFixed(2)}\n` +
-            `Player Y: ${Math.floor(this.player.y)} | Obstacles: ${this.obstacles.length}\n` +
-            `Mode: ${this.isNightMode ? 'Night' : 'Day'}`
-        );
 
     } catch (e) {
         this.updateDebugger(`RUNTIME ERROR in update(): ${e.message}. Game stopped.`);
@@ -402,7 +417,7 @@ class Game {
   }
 
   gameOver() {
-    this.gameRunning = false;
+    this.gameRunning = false; // Game stops
     this.finalScoreDisplay.textContent = Math.floor(this.score);
     if (this.score > this.bestScore) {
         this.bestScore = Math.floor(this.score);
@@ -414,22 +429,33 @@ class Game {
   }
 
   restart() {
-    this.gameRunning = true; this.score = 0; this.speed = 3; this.distance = 0;
-    this.lastScoredDistance = 0; // Reset this for new game
+    this.updateDebugger('Restart initiated. Setting gameRunning=true...');
+    this.gameRunning = true; // Sets game to running
+    this.score = 0; this.speed = 3; this.distance = 0;
+    this.lastScoredDistance = 0; // Reset for new game
+    this.nextThemeToggleScore = 1000; // Reset theme toggle score for new game
     this.player.y = this.groundY - this.player.height;
     this.player.velY = 0; this.player.grounded = true; this.player.isDucking = false;
     this.player.jumping = false; this.jumpRequested = false;
     this.obstacles = []; this.setNextSpawnDistance();
     this.updateScoreDisplay();
     this.gameOverScreen.style.display = 'none'; // Hide game over screen
-    this.updateDebugger('Game restarted. Good luck!');
+    this.updateDebugger('Restart completed. Game should be active.');
+    // Ensure the game loop is running. If it was paused by an error, this ensures it resumes.
+    // In most cases, the existing requestAnimationFrame chain will pick up 'gameRunning = true'.
+    // However, if the rAF chain was broken (e.g., after a hard crash), this ensures it starts again.
+    if (!this.gameRunning) { // This check should theoretically not pass here, but as a safeguard.
+        this.gameLoop();
+    }
   }
 
   updateBestScoreDisplay() { this.bestScoreDisplay.textContent = this.bestScore; }
 
   gameLoop() {
-    // This debugger message will be overwritten quickly by update() if game is running
-    // this.updateDebugger(`gameLoop started. Game Running: ${this.gameRunning}`); 
+    // This debugger message helps confirm if gameLoop is actually being invoked by rAF
+    // If you don't see this, rAF isn't calling gameLoop.
+    // This is typically overwritten by update() output immediately.
+    // console.log("gameLoop invoked. Game Running:", this.gameRunning);
 
     if (!this.gameRunning) {
         return; // Stop the loop if game is not running
@@ -441,7 +467,7 @@ class Game {
     } catch (e) {
         this.updateDebugger(`CRITICAL ERROR in gameLoop: ${e.message}. Loop stopped.`);
         console.error("Error in gameLoop:", e);
-        this.gameRunning = false;
+        this.gameRunning = false; // Stop the loop on error
     }
   }
 }
