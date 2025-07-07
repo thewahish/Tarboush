@@ -302,10 +302,10 @@ class Game {
             else if (obs.type === 'swooping_bird') {
                 if(!obs.y) obs.y = this.groundY - 150; obs.y += obs.vy;
             }
-            else if (obs.type === 'low_missile') obs.y = this.groundY - 65;
-            else obs.y = obs.h; // This line might cause issues if obs.h is not defined for all obstacle types.
-                                // It should be obs.y = this.groundY - obs.h; as it was previously.
-                                // **This is a potential bug introduced from previous copy-paste!**
+            // --- FIX: Corrected y-positioning for low_missile ---
+            else if (obs.type === 'low_missile') obs.y = this.groundY - 65; // Corrected from obs.y = obs.h;
+            // --- END FIX ---
+            else obs.y = this.groundY - obs.h; // This handles cactus, rock, spiky_bush
             
             const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
             const playerHitbox = {
