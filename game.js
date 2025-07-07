@@ -14,12 +14,13 @@ class Game {
         this.updateDebugger(errorMsg);
         console.error("Global JavaScript Error:", errorMsg, error);
         this.gameRunning = false; // Halt the game if a critical global error occurs
+        this.updateUIVisibility(); // Ensure UI reflects halt
         return true; // Prevent default browser error handling
     };
 
-    console.log("[Constructor DEBUG] Starting Game constructor."); // Initial log
+    console.log("[Constructor DEBUG] Starting Game constructor."); 
 
-    try { // Wrap the core constructor logic in try-catch
+    try {
         this.canvas = document.getElementById('gameCanvas');
         console.log("[Constructor DEBUG] Canvas element:", this.canvas);
         if (!this.canvas) {
@@ -31,17 +32,15 @@ class Game {
             throw new Error("Failed to get 2D rendering context for canvas.");
         }
 
-        console.log("[Constructor DEBUG] Setting gameRunning = true;");
-        this.gameRunning = true; // Should be true here
-        console.log("[Constructor DEBUG] gameRunning after set:", this.gameRunning);
-
+        this.gameRunning = false; // Game starts as not running, waiting for character select
         this.score = 0;
         this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
         this.speed = 3;
         this.distance = 0;
         this.lastScoredDistance = 0;
 
-        this.nextThemeToggleScore = 1000;
+        // --- CHANGE: Day/Night toggle every 500 points ---
+        this.nextThemeToggleScore = 500; 
 
         this.player = {
             x: 100, y: 0, width: 40, height: 60,
@@ -78,21 +77,29 @@ class Game {
           }
         };
 
-        this.setupCanvas();
+        // --- NEW: Character Data ---
+        this.characters = [
+            { id: 'shami_abu_tarboush', name: 'شامي أبو طربوش', available: true, image: 'placeholder.png' }, // Placeholder image
+            { id: 'fatom_hays_bays', name: 'فطوم حيص بيص', available: false, image: 'placeholder.png' },
+            { id: 'zulfiqar', name: 'زولفيقار', available: false, image: 'placeholder.png' },
+            { id: 'bakri_abu_halab', name: 'بكري أبو حلب', available: false, image: 'placeholder.png' },
+            { id: 'warni_warni', name: 'ورني ورني', available: false, image: 'placeholder.png' }
+        ];
+        this.selectedCharacterId = 'shami_abu_tarboush'; // Default selected character
+
+        this.setupCanvas(); // Sets up canvas dimensions and groundY
 
         this.scoreDisplay = document.getElementById('score');
-        console.log("[Constructor DEBUG] scoreDisplay:", this.scoreDisplay);
         if (!this.scoreDisplay) throw new Error("scoreDisplay element not found!");
         this.finalScoreDisplay = document.getElementById('finalScore');
-        console.log("[Constructor DEBUG] finalScoreDisplay:", this.finalScoreDisplay);
         if (!this.finalScoreDisplay) throw new Error("finalScoreDisplay element not found!");
         this.bestScoreDisplay = document.getElementById('bestScore');
-        console.log("[Constructor DEBUG] bestScoreDisplay:", this.bestScoreDisplay);
         if (!this.bestScoreDisplay) throw new Error("bestScoreDisplay element not found!");
         this.gameOverScreen = document.getElementById('gameOver');
-        console.log("[Constructor DEBUG] gameOverScreen:", this.gameOverScreen);
         if (!this.gameOverScreen) throw new Error("gameOverScreen element not found!");
-        this.jumpRequested = false;
+        this.characterSelectScreen = document.getElementById('characterSelectScreen');
+        if (!this.characterSelectScreen) throw new Error("characterSelectScreen element not found!");
+
 
         this.obstacles = [];
         this.distanceToNextSpawn = 0;
@@ -107,31 +114,64 @@ class Game {
         ];
 
         this.clouds = this.createClouds();
-        this.bindEvents(); // This sets up event listeners
+        this.bindEvents(); // Sets up event listeners
         this.updateBestScoreDisplay();
         this.setNextSpawnDistance();
         
-        console.log("[Constructor DEBUG] Before final debugger message. gameRunning:", this.gameRunning);
-        this.updateDebugger(`Game init success. Game running: ${this.gameRunning}\nPlayer Y: ${Math.floor(this.player.y)}`);
-        
-        console.log("[Constructor DEBUG] Calling gameLoop(). gameRunning:", this.gameRunning);
-        this.gameLoop(); // Start the game loop
-        console.log("[Constructor DEBUG] gameLoop() called. Constructor finishing. gameRunning:", this.gameRunning);
+        // --- NEW: Game starts in character select state ---
+        this.currentGameState = 'characterSelect';
+        this.updateUIVisibility(); // Adjusts UI based on initial state
+        this.renderCharacterSelectScreen(); // Populates character select UI
+
+        console.log("[Constructor DEBUG] Game init success. currentGameState:", this.currentGameState);
+        this.updateDebugger(`Game init success. State: ${this.currentGameState}`);
+
+        // Initial draw for character select screen (even if not playing)
+        this.gameLoop(); // Starts the main loop, but it will pause in 'characterSelect' state.
 
     } catch (e) {
         console.error("Error during Game initialization (caught by constructor):", e);
         this.updateDebugger(`CRITICAL ERROR during Game init: ${e.message}. Game stopped.`);
-        this.gameRunning = false; // Stop game if init fails
+        this.gameRunning = false;
+        this.updateUIVisibility(); // Ensure UI reflects error state
     }
     console.log("[Constructor DEBUG] Constructor finished. Final gameRunning state:", this.gameRunning);
   }
 
+  // --- CHANGE: Canvas Setup for Landscape Aspect Ratio ---
   setupCanvas() {
-    const maxW = Math.min(window.innerWidth - 40, 800);
-    const maxH = Math.min(window.innerHeight * 0.7, 400);
-    this.canvas.width = maxW;
-    this.canvas.height = maxH;
-    this.groundY = maxH - 40;
+    const desiredAspectRatio = 2; // e.g., 2:1 width to height for a wider landscape view
+    const minPadding = 40; // Minimum padding on sides
+
+    let targetWidth = window.innerWidth - minPadding;
+    let targetHeight = window.innerHeight - minPadding;
+
+    // Calculate actual canvas dimensions maintaining aspect ratio
+    if (targetWidth / targetHeight > desiredAspectRatio) {
+        // Window is wider than desired aspect, constrain by height
+        this.canvas.height = Math.min(targetHeight, 400); // Cap height at 400
+        this.canvas.width = this.canvas.height * desiredAspectRatio;
+    } else {
+        // Window is taller than desired aspect, constrain by width
+        this.canvas.width = Math.min(targetWidth, 800); // Cap width at 800
+        this.canvas.height = this.canvas.width / desiredAspectRatio;
+    }
+
+    // Ensure it doesn't get too small if window is tiny
+    // These minimums are important for small mobile screens in landscape
+    const absoluteMinWidth = 300;
+    const absoluteMinHeight = 150;
+
+    if (this.canvas.width < absoluteMinWidth) {
+        this.canvas.width = absoluteMinWidth;
+        this.canvas.height = this.canvas.width / desiredAspectRatio;
+    }
+    if (this.canvas.height < absoluteMinHeight) {
+        this.canvas.height = absoluteMinHeight;
+        this.canvas.width = this.canvas.height * desiredAspectRatio;
+    }
+
+    this.groundY = this.canvas.height - 40; // Ground is relative to canvas height
     this.player.y = this.groundY - this.player.height;
   }
 
@@ -168,22 +208,136 @@ class Game {
       }
   }
 
+  // --- NEW: Manages visibility of main game UI and Character Select / Game Over screens ---
+  updateUIVisibility() {
+      const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+      
+      const gameElements = [
+          this.canvas.parentElement, // .game-container
+          this.scoreDisplay.parentElement, // #ui-container
+          document.getElementById('jumpButton'),
+          document.getElementById('duckButton'),
+          this.debuggerDisplay
+      ];
+
+      // Hide all game elements by default (they are shown in landscape CSS)
+      // We explicitly hide them here based on game state
+      gameElements.forEach(el => {
+        if(el) el.style.display = 'none';
+      });
+      this.gameOverScreen.style.display = 'none';
+      this.characterSelectScreen.style.display = 'none';
+      
+      if (isLandscape) {
+          if (this.currentGameState === 'playing') {
+              gameElements.forEach(el => {
+                // Ensure correct display type (flex for containers, block for score/debugger/canvas itself)
+                if (el.id === 'ui-container' || el.id === 'debuggerDisplay' || el.classList.contains('action-button') || el.classList.contains('game-container')) {
+                    if(el) el.style.display = 'flex';
+                } else if (el) { // Canvas element parent and score itself are not flex by default
+                    el.style.display = 'block';
+                }
+              });
+              this.scoreDisplay.style.display = 'block'; // Explicitly set score display to block
+          } else if (this.currentGameState === 'gameOver') {
+              this.gameOverScreen.style.display = 'block';
+              // Keep canvas visible in game over to see final state
+              if(this.canvas.parentElement) this.canvas.parentElement.style.display = 'flex';
+              if(this.canvas) this.canvas.style.display = 'block';
+              if(this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible
+          } else if (this.currentGameState === 'characterSelect') {
+              this.characterSelectScreen.style.display = 'flex';
+          }
+      }
+      // Orientation warning CSS handles portrait display automatically
+  }
+
+
+  // --- NEW: Renders/updates the character selection screen ---
+  renderCharacterSelectScreen() {
+      const characterGrid = this.characterSelectScreen.querySelector('.character-grid');
+      characterGrid.innerHTML = ''; // Clear previous slots
+
+      this.characters.forEach(char => {
+          const slot = document.createElement('div');
+          slot.classList.add('character-slot');
+          
+          let imgSource = char.image; // Use char.image if you have actual images
+          // For now, let's just make it a colored square/circle if no image path exists
+          const charImageHtml = `<div style="width:60px; height:60px; border-radius:50%; background-color:${char.available ? 'var(--revolutionary-red)' : '#888'}; border: 2px solid var(--syrian-white); margin-bottom: 8px;"></div>`;
+          
+          slot.innerHTML = `${charImageHtml}<p>${char.name}</p>`;
+
+          if (char.available) {
+              slot.classList.add('available');
+              slot.addEventListener('click', () => {
+                  this.selectedCharacterId = char.id;
+                  // Add visual feedback for selection if desired (e.g., add 'selected' class)
+                  this.updateDebugger(`Selected character: ${char.name}`);
+                  // Highlight selected character
+                  characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
+                  slot.classList.add('selected');
+              });
+          } else {
+              slot.classList.add('grayed-out');
+          }
+          characterGrid.appendChild(slot);
+      });
+
+      const startGameBtn = document.getElementById('start-game-btn');
+      if (startGameBtn) {
+          startGameBtn.onclick = () => this.startGame(); // Bind to startGame
+      } else {
+          this.updateDebugger("Error: start-game-btn not found!");
+          console.error("Error: start-game-btn not found!");
+      }
+
+      this.updateUIVisibility(); // Ensure character select screen is visible
+  }
+
+
+  // --- NEW: Starts or restarts the game from character select or game over ---
+  startGame() {
+    console.log("[startGame DEBUG] Starting new game...");
+    this.updateDebugger('Starting new game...');
+    this.gameRunning = true; // Set game to running
+    this.score = 0; this.speed = 3; this.distance = 0;
+    this.lastScoredDistance = 0; // Reset for new game
+    this.nextThemeToggleScore = 500; // Reset theme toggle score for new game
+    this.player.y = this.groundY - this.player.height;
+    this.player.velY = 0; this.player.grounded = true; this.player.isDucking = false;
+    this.player.jumping = false; this.jumpRequested = false;
+    this.obstacles = []; this.setNextSpawnDistance();
+    this.updateScoreDisplay();
+    
+    this.currentGameState = 'playing'; // Set game state to playing
+    this.updateUIVisibility(); // Adjust UI to show game elements
+
+    this.updateDebugger('Game started. Good luck!');
+    console.log("[startGame DEBUG] Game started. gameRunning is:", this.gameRunning);
+
+    // Ensure the game loop is running. This is crucial if it was paused.
+    this.gameLoop(); // Call gameLoop once to trigger a new requestAnimationFrame
+    console.log("[startGame DEBUG] gameLoop() explicitly called from startGame().");
+  }
+
+
   bindEvents() {
     console.log("[bindEvents DEBUG] Starting bindEvents.");
     try {
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); this.jumpRequested = true; }
-            else if (e.key === 'ArrowDown') { e.preventDefault(); this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } }
+            if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); if (this.currentGameState === 'playing') this.jumpRequested = true; }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); if (this.currentGameState === 'playing') { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } }
         });
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowDown') { e.preventDefault(); this.player.isDucking = false; }
+            if (e.key === 'ArrowDown') { e.preventDefault(); if (this.currentGameState === 'playing') this.player.isDucking = false; }
         });
 
         const jumpButton = document.getElementById('jumpButton');
         console.log("[bindEvents DEBUG] jumpButton:", jumpButton);
         if (jumpButton) {
-            jumpButton.addEventListener('click', () => { if (this.gameRunning && !this.player.isDucking) this.jumpRequested = true; });
-            jumpButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.gameRunning && !this.player.isDucking) this.jumpRequested = true; });
+            jumpButton.addEventListener('click', () => { if (this.currentGameState === 'playing' && !this.player.isDucking) this.jumpRequested = true; });
+            jumpButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) this.jumpRequested = true; });
         } else {
             throw new Error("jumpButton not found!");
         }
@@ -191,9 +345,9 @@ class Game {
         const duckButton = document.getElementById('duckButton');
         console.log("[bindEvents DEBUG] duckButton:", duckButton);
         if (duckButton) {
-            duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); if (this.gameRunning && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
+            duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
             duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); this.player.isDucking = false; });
-            duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.gameRunning && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
+            duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.currentGameState === 'playing' && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
             duckButton.addEventListener('touchend', (e) => { e.preventDefault(); this.player.isDucking = false; });
         } else {
             throw new Error("duckButton not found!");
@@ -202,18 +356,26 @@ class Game {
         const restartBtn = document.getElementById('restartBtn');
         console.log("[bindEvents DEBUG] restartBtn:", restartBtn);
         if (restartBtn) {
-            restartBtn.addEventListener('click', () => this.restart());
+            // "Play Again" button now calls startGame
+            restartBtn.addEventListener('click', () => this.startGame()); 
         } else {
             throw new Error("restartBtn not found!");
         }
 
-        window.addEventListener('resize', () => this.setupCanvas());
+        // --- NEW: Add event listener for screen orientation changes ---
+        window.addEventListener('orientationchange', () => this.updateUIVisibility());
+        window.addEventListener('resize', () => {
+            this.setupCanvas(); // Recalculate canvas size on resize
+            this.updateUIVisibility(); // Adjust UI visibility (esp. for orientation changes)
+        });
+
         this.updateDebugger('All core events bound successfully.');
         console.log("[bindEvents DEBUG] bindEvents finished successfully.");
     } catch (e) {
         console.error("Error binding events (caught by bindEvents):", e);
         this.updateDebugger(`ERROR binding events: ${e.message}. Game might not respond to input.`);
-        this.gameRunning = false; // This sets gameRunning to false
+        this.gameRunning = false;
+        this.updateUIVisibility(); // Ensure UI reflects error state
     }
   }
 
@@ -244,7 +406,7 @@ class Game {
   }
   
   updateScoreDisplay() {
-      this.scoreDisplay.textContent = 'Score: ' + Math.floor(this.score);
+      this.scoreDisplay.textContent = 'نقاط: ' + Math.floor(this.score) + ' ليرة سوري'; // Score and currency
   }
 
   update() {
@@ -255,9 +417,9 @@ class Game {
         `Mode: ${this.isNightMode ? 'Night' : 'Day'}`
     );
 
-    if (!this.gameRunning) {
-        console.log("[update DEBUG] update() returning because gameRunning is false.");
-        return; // If game isn't running, stop updating
+    if (!this.gameRunning || this.currentGameState !== 'playing') { // Only update if game is running AND state is 'playing'
+        console.log("[update DEBUG] update() returning because game is not running or state is not playing.");
+        return; 
     }
 
     try {
@@ -272,10 +434,10 @@ class Game {
             this.updateScoreDisplay();
         }
 
-        const currentThousandBlock = Math.floor(this.score / 1000);
+        // --- CHANGE: Day/Night toggle every 500 points ---
         if (this.score >= this.nextThemeToggleScore) {
              this.toggleDayNight();
-             this.nextThemeToggleScore += 1000;
+             this.nextThemeToggleScore += 500; // Increment by 500
              this.updateDebugger(`Theme changed at ${Math.floor(this.score)} points! Now ${this.isNightMode ? 'Night' : 'Day'} Mode.`);
         }
 
@@ -302,7 +464,7 @@ class Game {
             else if (obs.type === 'swooping_bird') {
                 if(!obs.y) obs.y = this.groundY - 150; obs.y += obs.vy;
             }
-            else if (obs.type === 'low_missile') obs.y = this.groundY - 65; // This is the corrected line for missile
+            else if (obs.type === 'low_missile') obs.y = this.groundY - 65; // Corrected missile positioning
             else obs.y = this.groundY - obs.h; // This handles cactus, rock, spiky_bush (ground obstacles)
             
             // --- NEW: Detailed Obstacle Y Debugging ---
@@ -338,6 +500,7 @@ class Game {
         console.error("Error in update() (caught by update):", e);
         this.updateDebugger(`RUNTIME ERROR in update(): ${e.message}. Game stopped.`);
         this.gameRunning = false; // Stop game on error
+        this.updateUIVisibility(); // Adjust UI visibility on error
     }
   }
   
@@ -374,9 +537,13 @@ class Game {
   }
 
   draw() {
-    console.log("[draw DEBUG] draw() invoked."); // This log tells us if draw is running
+    console.log("[draw DEBUG] draw() invoked.");
+    // Only draw if game is in a state where visual updates are expected
+    if (this.currentGameState !== 'playing' && this.currentGameState !== 'gameOver') {
+        return; 
+    }
     const ctx = this.ctx;
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear entire canvas
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     // Ground
     ctx.fillStyle = this._getColor('ground');
@@ -393,7 +560,7 @@ class Game {
     });
 
     // Player
-    try { // Try-catch around drawPlayer for specific errors
+    try {
         this.drawPlayer(this.player.x, this.player.y);
     } catch (e) {
         console.error("Error drawing player (caught by draw):", e);
@@ -433,48 +600,61 @@ class Game {
   }
 
   gameOver() {
-    this.gameRunning = false; // Game stops
+    this.gameRunning = false;
     this.finalScoreDisplay.textContent = Math.floor(this.score);
     if (this.score > this.bestScore) {
         this.bestScore = Math.floor(this.score);
         localStorage.setItem('tarboushBestScore', this.bestScore);
     }
     this.updateBestScoreDisplay();
-    this.gameOverScreen.style.display = 'block'; // Make game over screen visible
+    
+    this.currentGameState = 'gameOver'; // Set game state to game over
+    this.updateUIVisibility(); // Adjust UI to show game over screen
+
     this.updateDebugger(`Game Over. Final Score: ${Math.floor(this.score)}. Tap 'Play Again'`);
     console.log("[gameOver DEBUG] Game Over called. gameRunning set to false.");
   }
 
-  restart() {
-    console.log("[restart DEBUG] Restart initiated.");
-    this.updateDebugger('Restart initiated. Setting gameRunning=true...');
-    this.gameRunning = true; // Sets game to running
+  // --- NEW: Replaced restart() with startGame() for unified flow ---
+  // startGame() now handles initial game start and restarts after game over.
+  // It's called when 'ابدأ اللعب' or 'العب مرة أخرى' is pressed.
+  startGame() {
+    console.log("[startGame DEBUG] Starting new game...");
+    this.updateDebugger('Starting new game...');
+    this.gameRunning = true; // Set game to running
     this.score = 0; this.speed = 3; this.distance = 0;
-    this.lastScoredDistance = 0; // Reset for new game
-    this.nextThemeToggleScore = 1000; // Reset theme toggle score for new game
+    this.lastScoredDistance = 0;
+    this.nextThemeToggleScore = 500; // Reset theme toggle score for new game
     this.player.y = this.groundY - this.player.height;
     this.player.velY = 0; this.player.grounded = true; this.player.isDucking = false;
     this.player.jumping = false; this.jumpRequested = false;
     this.obstacles = []; this.setNextSpawnDistance();
     this.updateScoreDisplay();
-    this.gameOverScreen.style.display = 'none'; // Hide game over screen
-    this.updateDebugger('Restart completed. Game should be active.');
-    console.log("[restart DEBUG] Restart finished. gameRunning is:", this.gameRunning);
+    
+    this.currentGameState = 'playing'; // Set game state to playing
+    this.updateUIVisibility(); // Adjust UI to show game elements
 
-    // --- FIX: Explicitly re-call gameLoop to ensure rAF chain restarts ---
+    this.updateDebugger('Game started. Good luck!');
+    console.log("[startGame DEBUG] Game started. gameRunning is:", this.gameRunning);
+
+    // Ensure the game loop is running. This is crucial if it was paused.
     this.gameLoop(); // Call gameLoop once to trigger a new requestAnimationFrame
-    console.log("[restart DEBUG] gameLoop() explicitly called from restart().");
+    console.log("[startGame DEBUG] gameLoop() explicitly called from startGame().");
   }
 
   updateBestScoreDisplay() { this.bestScoreDisplay.textContent = this.bestScore; }
 
   gameLoop() {
-    console.log("[gameLoop DEBUG] gameLoop invoked. gameRunning:", this.gameRunning); // This is key!
+    console.log("[gameLoop DEBUG] gameLoop invoked. gameRunning:", this.gameRunning, " | currentGameState:", this.currentGameState);
 
-    if (!this.gameRunning) {
-        console.log("[gameLoop DEBUG] gameLoop returning because gameRunning is false.");
-        return; // Stop the loop if game is not running
+    if (!this.gameRunning || this.currentGameState !== 'playing') { // Only run if game is running AND state is 'playing'
+        console.log("[gameLoop DEBUG] gameLoop returning because gameRunning is false OR state is not playing.");
+        // If currentGameState is 'characterSelect' or 'gameOver', the loop will continue to request frames
+        // but it will immediately return from update()/draw() until currentGameState is 'playing'.
+        requestAnimationFrame(() => this.gameLoop()); // Keep loop alive even when paused
+        return; 
     }
+
     try {
         this.update();
         this.draw();
@@ -482,7 +662,8 @@ class Game {
     } catch (e) {
         console.error("Error in gameLoop (caught by gameLoop):", e);
         this.updateDebugger(`CRITICAL ERROR in gameLoop: ${e.message}. Loop stopped.`);
-        this.gameRunning = false; // Stop the loop on error
+        this.gameRunning = false;
+        this.updateUIVisibility(); // Adjust UI visibility on error
     }
   }
 }
