@@ -50,23 +50,24 @@
     }
 
     /* --- Base display properties for all major UI components (JS will control display:none/flex/block) --- */
+    /* All main screens and containers will be positioned absolutely to overlap */
     .game-container, #ui-container, .action-button, #debuggerDisplay,
     #characterSelectScreen, #gameOver, #orientation-warning {
         position: absolute;
         top: 0; left: 0; width: 100%; height: 100%;
         box-sizing: border-box;
-        display: none; /* Initially hidden, JS will show what's needed */
+        display: none; /* Hidden by default, JS will show what's needed */
     }
 
-    /* Specific display types when they are made visible by JS */
-    .game-container { justify-content: center; align-items: center; } /* flex is set by JS */
-    #ui-container { justify-content: center; align-items: center; pointer-events: none; } /* flex is set by JS */
-    .action-button { justify-content: center; align-items: center; pointer-events: auto; } /* flex is set by JS */
-    #debuggerDisplay { align-items: flex-start; text-align: left; } /* flex is set by JS */
-    #characterSelectScreen { flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; } /* flex is set by JS */
-    #gameOver { text-align: center; padding: 30px; } /* block is set by JS */
-    #score { /* block is set by JS */ }
-    canvas { /* block is set by JS */ }
+    /* Specific display types when they are made visible by JS (to ensure correct layout) */
+    .game-container { justify-content: center; align-items: center; }
+    #ui-container { justify-content: center; align-items: center; pointer-events: none; }
+    .action-button { justify-content: center; align-items: center; pointer-events: auto; }
+    #debuggerDisplay { align-items: flex-start; text-align: left; }
+    #characterSelectScreen { flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
+    #gameOver { text-align: center; padding: 30px; }
+    #score { /* No specific flex/block needed here, it's inside #ui-container */ }
+    canvas { /* No specific flex/block needed here, it's inside .game-container */ }
 
 
     #characterSelectScreen h2 {
@@ -77,8 +78,8 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 15px;
         margin-bottom: 30px;
-        max-width: 300px;
-        margin-left: auto;
+        max-width: 300px; /* Limit grid width */
+        margin-left: auto; /* Center grid */
         margin-right: auto;
     }
     .character-slot {
@@ -127,7 +128,7 @@
     #orientation-warning p { font-size: 2em; margin-bottom: 20px; }
 
 
-    /* UI element positioning */
+    /* UI element positioning (relative to its parent container which is full screen) */
     #score {
       position: absolute;
       top: 90px;
