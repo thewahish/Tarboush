@@ -8,6 +8,7 @@ class Game {
     this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
     this.speed = 3;
     this.distance = 0;
+    this.lastScoredDistance = 0; // New: To track distance for scoring
 
     this.player = {
       x: 100, y: 0, width: 40, height: 60,
@@ -67,7 +68,14 @@ class Game {
   bindEvents() {
     const handleAction = () => {
         if (this.gameRunning) {
-            if (!this.player.isDucking) this.jumpRequested = true;
+            if (!this.player.isDucking) {
+                this.jumpRequested = true;
+                // --- SCORING CHANGE: 5 points every jump ---
+                if (this.player.grounded) { // Only award points if actually starting a jump from grounded state
+                    this.score += 5;
+                    this.updateScoreDisplay();
+                }
+            }
         } else {
             this.restart();
         }
@@ -101,8 +109,8 @@ class Game {
 
   setNextSpawnDistance() {
       // Significantly reduced distance between obstacles for more frequent spawns
-      const min = 150; // Was 250
-      const max = 300; // Was 450
+      const min = 150;
+      const max = 300;
       this.distanceToNextSpawn = Math.floor(Math.random() * (max - min + 1) + min);
   }
 
@@ -127,19 +135,26 @@ class Game {
   }
   
   updateScoreDisplay() {
-      this.scoreDisplay.textContent = 'Score: ' + Math.floor(this.score); // Use Math.floor to display whole numbers for score
+      this.scoreDisplay.textContent = 'Score: ' + Math.floor(this.score);
   }
 
   update() {
     if (!this.gameRunning) return;
 
-    // --- SCORING CHANGE: 1 point per every step (distance travelled) ---
-    const previousDistance = Math.floor(this.distance);
+    // Update distance
     this.distance += this.speed;
-    const currentDistance = Math.floor(this.distance);
-    if (currentDistance > previousDistance) {
-        this.score += (currentDistance - previousDistance); // Add points for each unit of distance covered
+
+    // --- SCORING CHANGE: 1 point per every 10 steps (distance travelled) ---
+    // Check if we've covered another 10 steps since the last score increment
+    const currentTotalSteps = Math.floor(this.distance);
+    const stepsSinceLastScore = currentTotalSteps - this.lastScoredDistance;
+
+    if (stepsSinceLastScore >= 10) {
+        this.score += Math.floor(stepsSinceLastScore / 10); // Add points for every full 10 steps
+        this.lastScoredDistance += Math.floor(stepsSinceLastScore / 10) * 10; // Update last scored distance in multiples of 10
+        this.updateScoreDisplay();
     }
+
 
     if (this.jumpRequested && this.player.grounded) {
         this.player.velY = -12; this.player.jumping = true; this.player.grounded = false; this.jumpRequested = false;
@@ -177,7 +192,7 @@ class Game {
             this.gameOver();
         }
 
-        // --- SCORING CHANGE: 10 points per obstacle when player passes it ---
+        // --- SCORING: 10 points per obstacle when player passes it (unchanged) ---
         if (!obs.scored && obs.x + obs.w < this.player.x) {
             this.score += 10;
             obs.scored = true;
@@ -191,7 +206,6 @@ class Game {
 
     this.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) c.x = this.canvas.width; });
     if (this.player.jumping) this.jumpRequested = false;
-    this.updateScoreDisplay(); // Update score display every frame for distance points
   }
   
   drawPlayer(px, py) {
@@ -255,7 +269,7 @@ class Game {
     this.gameRunning = false;
     this.finalScoreDisplay.textContent = Math.floor(this.score);
     if (this.score > this.bestScore) {
-        this.bestScore = Math.floor(this.score); // Store best score as a whole number
+        this.bestScore = Math.floor(this.score);
         localStorage.setItem('tarboushBestScore', this.bestScore);
     }
     this.updateBestScoreDisplay();
@@ -264,6 +278,7 @@ class Game {
 
   restart() {
     this.gameRunning = true; this.score = 0; this.speed = 3; this.distance = 0;
+    this.lastScoredDistance = 0; // Reset this for new game
     this.player.y = this.groundY - this.player.height;
     this.player.velY = 0; this.player.grounded = true; this.player.isDucking = false;
     this.player.jumping = false; this.jumpRequested = false;
