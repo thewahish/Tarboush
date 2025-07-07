@@ -302,11 +302,13 @@ class Game {
             else if (obs.type === 'swooping_bird') {
                 if(!obs.y) obs.y = this.groundY - 150; obs.y += obs.vy;
             }
-            // --- FIX: Corrected y-positioning for low_missile ---
-            else if (obs.type === 'low_missile') obs.y = this.groundY - 65; // Corrected from obs.y = obs.h;
-            // --- END FIX ---
-            else obs.y = this.groundY - obs.h; // This handles cactus, rock, spiky_bush
+            else if (obs.type === 'low_missile') obs.y = this.groundY - 65; // This is the corrected line for missile
+            else obs.y = this.groundY - obs.h; // This handles cactus, rock, spiky_bush (ground obstacles)
             
+            // --- NEW: Detailed Obstacle Y Debugging ---
+            console.log(`[Obstacle Y DEBUG] Type: ${obs.type}, GroundY: ${this.groundY}, Obs.h: ${obs.h}, Calculated Y: ${obs.y}`);
+            // --- END NEW DEBUG ---
+
             const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
             const playerHitbox = {
                 x: this.player.x + hitbox.x_offset, y: this.player.y + hitbox.y_offset,
