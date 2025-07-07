@@ -1,79 +1,103 @@
 // game.js
 class Game {
   constructor() {
-    this.canvas = document.getElementById('gameCanvas');
-    this.ctx = this.canvas.getContext('2d');
-    this.gameRunning = true;
-    this.score = 0;
-    this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
-    this.speed = 3;
-    this.distance = 0;
-    this.lastScoredDistance = 0; // To track distance for scoring
-
-    // --- NEW: Day/Night Mode State & Colors ---
-    this.isNightMode = false;
-    this.themeColors = {
-      day: {
-        // Colors for canvas elements in Day Mode
-        ground: '#A0522D', // Sienna
-        cloud: 'rgba(255,255,255,0.8)', // White clouds
-        playerTarboush: '#CE1126', // Red
-        playerBody: '#FFFFFF', // White
-        playerSkin: '#FDBCB4',
-        playerDetail: '#000000', // Black
-        obstacleGreen: '#007A3D', // Green (cactus, bush)
-        obstacleBlack: '#000000', // Black (bird)
-        obstacleGrey: '#696969', // Grey (rock, missile)
-        obstacleMissileFlame: '#FF4500', // Orange (missile flame)
-      },
-      night: {
-        // Colors for canvas elements in Night Mode (inverted/darker theme)
-        ground: '#5A2C10', // Darker brown
-        cloud: 'rgba(200,200,200,0.2)', // Dim, semi-transparent grey clouds
-        playerTarboush: '#990B1E', // Darker Red
-        playerBody: '#BBBBBB', // Light grey
-        playerSkin: '#A17B74', // Darker skin
-        playerDetail: '#EEEEEE', // Light grey
-        obstacleGreen: '#004D27', // Dark green
-        obstacleBlack: '#AAAAAA', // Light grey silhouette
-        obstacleGrey: '#333333', // Darker grey
-        obstacleMissileFlame: '#E68A00', // Darker orange
-      }
+    // --- NEW: Debugger Setup - INITIALIZE FIRST ---
+    this.debuggerDisplay = document.getElementById('debuggerDisplay');
+    if (!this.debuggerDisplay) {
+        // Fallback to console if debugger display isn't available
+        console.error("CRITICAL: Debugger display element #debuggerDisplay not found!");
+        // A simple alert might be disruptive, so relying on console is safer.
+    }
+    this.updateDebugger("Initializing Game Class...");
+    
+    // Add a global error handler to catch any uncaught errors anywhere in the script
+    window.onerror = (message, source, lineno, colno, error) => {
+        const errorMsg = `Global Error: ${message} (Line: ${lineno})`;
+        this.updateDebugger(errorMsg);
+        console.error("Global JavaScript Error:", errorMsg, error);
+        this.gameRunning = false; // Halt the game if a critical global error occurs
+        return true; // Prevent default browser error handling
     };
 
-    this.setupCanvas();
+    try { // Wrap the core constructor logic in try-catch
+        this.canvas = document.getElementById('gameCanvas');
+        if (!this.canvas) {
+            throw new Error("Canvas element #gameCanvas not found!");
+        }
+        this.ctx = this.canvas.getContext('2d');
+        if (!this.ctx) {
+            throw new Error("Failed to get 2D rendering context for canvas.");
+        }
 
-    this.scoreDisplay = document.getElementById('score');
-    this.finalScoreDisplay = document.getElementById('finalScore');
-    this.bestScoreDisplay = document.getElementById('bestScore');
-    this.gameOverScreen = document.getElementById('gameOver');
-    this.jumpRequested = false;
+        this.gameRunning = true;
+        this.score = 0;
+        this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
+        this.speed = 3;
+        this.distance = 0;
+        this.lastScoredDistance = 0;
 
-    this.obstacles = [];
-    this.distanceToNextSpawn = 0;
-    this.obstaclePatterns = [
-        { type: 'single_cactus', minSpeed: 0 },
-        { type: 'single_rock', minSpeed: 0 },
-        { type: 'spiky_bush', minSpeed: 3 },
-        { type: 'high_bird', minSpeed: 4 },
-        { type: 'double_rock', minSpeed: 5 },
-        { type: 'swooping_bird', minSpeed: 6 },
-        { type: 'low_missile', minSpeed: 7 }
-    ];
+        this.isNightMode = false;
+        this.themeColors = {
+          day: {
+            ground: '#A0522D',
+            cloud: 'rgba(255,255,255,0.8)',
+            playerTarboush: '#CE1126',
+            playerBody: '#FFFFFF',
+            playerSkin: '#FDBCB4',
+            playerDetail: '#000000',
+            obstacleGreen: '#007A3D',
+            obstacleBlack: '#000000',
+            obstacleGrey: '#696969',
+            obstacleMissileFlame: '#FF4500',
+          },
+          night: {
+            ground: '#5A2C10',
+            cloud: 'rgba(200,200,200,0.2)',
+            playerTarboush: '#990B1E',
+            playerBody: '#BBBBBB',
+            playerSkin: '#A17B74',
+            playerDetail: '#EEEEEE',
+            obstacleGreen: '#004D27',
+            obstacleBlack: '#AAAAAA',
+            obstacleGrey: '#333333',
+            obstacleMissileFlame: '#E68A00',
+          }
+        };
 
-    this.clouds = this.createClouds();
-    this.bindEvents();
-    this.updateBestScoreDisplay();
-    this.setNextSpawnDistance();
-    this.gameLoop();
+        this.setupCanvas();
 
-    // --- NEW: Debugger Setup ---
-    this.debuggerDisplay = document.getElementById('debuggerDisplay');
-    // Wrap the entire Game constructor logic in a try-catch to catch early errors
-    try {
-        this.updateDebugger('Game initialized.');
+        this.scoreDisplay = document.getElementById('score');
+        if (!this.scoreDisplay) throw new Error("scoreDisplay element not found!");
+        this.finalScoreDisplay = document.getElementById('finalScore');
+        if (!this.finalScoreDisplay) throw new Error("finalScoreDisplay element not found!");
+        this.bestScoreDisplay = document.getElementById('bestScore');
+        if (!this.bestScoreDisplay) throw new Error("bestScoreDisplay element not found!");
+        this.gameOverScreen = document.getElementById('gameOver');
+        if (!this.gameOverScreen) throw new Error("gameOverScreen element not found!");
+        this.jumpRequested = false;
+
+        this.obstacles = [];
+        this.distanceToNextSpawn = 0;
+        this.obstaclePatterns = [
+            { type: 'single_cactus', minSpeed: 0 },
+            { type: 'single_rock', minSpeed: 0 },
+            { type: 'spiky_bush', minSpeed: 3 },
+            { type: 'high_bird', minSpeed: 4 },
+            { type: 'double_rock', minSpeed: 5 },
+            { type: 'swooping_bird', minSpeed: 6 },
+            { type: 'low_missile', minSpeed: 7 }
+        ];
+
+        this.clouds = this.createClouds();
+        this.bindEvents(); // This sets up event listeners
+        this.updateBestScoreDisplay();
+        this.setNextSpawnDistance();
+        
+        this.updateDebugger(`Game init success. Game running: ${this.gameRunning}\nPlayer Y: ${Math.floor(this.player.y)}`);
+        this.gameLoop(); // Start the game loop
+
     } catch (e) {
-        this.updateDebugger(`Error during init: ${e.message}`);
+        this.updateDebugger(`CRITICAL ERROR during Game init: ${e.message}. Game stopped.`);
         console.error("Error during Game initialization:", e);
         this.gameRunning = false; // Stop game if init fails
     }
@@ -109,78 +133,71 @@ class Game {
     this.isNightMode = !this.isNightMode;
     document.body.classList.toggle('night-mode', this.isNightMode);
     this.updateScoreDisplay();
-    this.draw();
+    this.draw(); // Redraw immediately to reflect theme changes
+    this.updateDebugger(`Day/Night toggled to ${this.isNightMode ? 'Night' : 'Day'} Mode.`);
   }
 
-  // --- NEW: Update Debugger Display Method ---
+  // --- UPDATED: Update Debugger Display Method ---
   updateDebugger(message) {
       if (this.debuggerDisplay) {
-          this.debuggerDisplay.textContent = `Debugger: ${message}`;
+          // Add a timestamp for better debugging
+          const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
+          this.debuggerDisplay.textContent = `[${timestamp}] ${message}`;
+      } else {
+          // Fallback to console if debugger display isn't available for some reason
+          console.log(`[Debugger FB - No UI]: ${message}`);
       }
   }
 
   bindEvents() {
-    const handleAction = () => {
-        if (this.gameRunning) {
-            if (!this.player.isDucking) {
-                this.jumpRequested = true;
-            }
-        } else {
-            this.restart();
-        }
-    };
-    const duckStart = () => {
-        if (this.gameRunning && !this.player.isDucking) {
-            this.player.isDucking = true;
-            if (!this.player.grounded) { this.player.velY += 5; }
-        }
-    };
-    const duckEnd = () => { this.player.isDucking = false; };
-
     try { // Wrap event binding in try-catch for debugging
         document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); handleAction(); }
-            else if (e.key === 'ArrowDown') { e.preventDefault(); duckStart(); }
+            if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); this.jumpRequested = true; }
+            else if (e.key === 'ArrowDown') { e.preventDefault(); this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } }
         });
         document.addEventListener('keyup', (e) => {
-            if (e.key === 'ArrowDown') { e.preventDefault(); duckEnd(); }
+            if (e.key === 'ArrowDown') { e.preventDefault(); this.player.isDucking = false; }
         });
 
         const jumpButton = document.getElementById('jumpButton');
         if (jumpButton) {
-            jumpButton.addEventListener('click', handleAction);
-            jumpButton.addEventListener('touchstart', (e) => { e.preventDefault(); handleAction(); });
+            jumpButton.addEventListener('click', () => { if (this.gameRunning && !this.player.isDucking) this.jumpRequested = true; });
+            jumpButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.gameRunning && !this.player.isDucking) this.jumpRequested = true; });
         } else {
-            this.updateDebugger("Error: jumpButton not found!");
-            console.error("Error: jumpButton not found!");
+            throw new Error("jumpButton not found!");
         }
 
         const duckButton = document.getElementById('duckButton');
         if (duckButton) {
-            duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); duckStart(); });
-            duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); duckEnd(); });
-            duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); duckStart(); });
-            duckButton.addEventListener('touchend', (e) => { e.preventDefault(); duckEnd(); });
+            duckButton.addEventListener('mousedown', (e) => { e.preventDefault(); if (this.gameRunning && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
+            duckButton.addEventListener('mouseup', (e) => { e.preventDefault(); this.player.isDucking = false; });
+            duckButton.addEventListener('touchstart', (e) => { e.preventDefault(); if (this.gameRunning && !this.player.isDucking) { this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } } });
+            duckButton.addEventListener('touchend', (e) => { e.preventDefault(); this.player.isDucking = false; });
         } else {
-            this.updateDebugger("Error: duckButton not found!");
-            console.error("Error: duckButton not found!");
+            throw new Error("duckButton not found!");
         }
 
-        document.getElementById('restartBtn').addEventListener('click', () => this.restart());
+        const restartBtn = document.getElementById('restartBtn');
+        if (restartBtn) {
+            restartBtn.addEventListener('click', () => this.restart());
+        } else {
+            throw new Error("restartBtn not found!");
+        }
+
         const dayNightToggle = document.getElementById('dayNightToggle');
         if (dayNightToggle) {
             dayNightToggle.addEventListener('click', () => this.toggleDayNight());
             dayNightToggle.addEventListener('touchstart', (e) => { e.preventDefault(); this.toggleDayNight(); });
         } else {
-            this.updateDebugger("Error: dayNightToggle not found!");
-            console.error("Error: dayNightToggle not found!");
+            throw new Error("dayNightToggle not found!");
         }
 
         window.addEventListener('resize', () => this.setupCanvas());
-        this.updateDebugger('Events bound successfully.');
+        this.updateDebugger('All events bound successfully.');
     } catch (e) {
-        this.updateDebugger(`Error binding events: ${e.message}`);
+        this.updateDebugger(`ERROR binding events: ${e.message}. Game might not respond to input.`);
         console.error("Error binding events:", e);
+        this.gameRunning = false; // Potentially halt if input is crucial
     }
   }
 
@@ -216,11 +233,11 @@ class Game {
 
   update() {
     if (!this.gameRunning) {
-        this.updateDebugger(`Game Over. Score: ${Math.floor(this.score)}`);
+        // No need to constantly update debugger here if game is stopped
         return;
     }
 
-    try { // Wrap update logic in try-catch for debugging
+    try {
         this.distance += this.speed;
 
         const currentTotalSteps = Math.floor(this.distance);
@@ -282,11 +299,15 @@ class Game {
         this.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) c.x = this.canvas.width; });
         if (this.player.jumping) this.jumpRequested = false;
 
-        // --- NEW: Update debugger with live data ---
-        this.updateDebugger(`Score: ${Math.floor(this.score)} | Speed: ${this.speed.toFixed(2)} | Player Y: ${Math.floor(this.player.y)}`);
+        // --- UPDATED: Update debugger with live data ---
+        this.updateDebugger(
+            `Score: ${Math.floor(this.score)} | Speed: ${this.speed.toFixed(2)}\n` +
+            `Player Y: ${Math.floor(this.player.y)} | Obstacles: ${this.obstacles.length}\n` +
+            `Mode: ${this.isNightMode ? 'Night' : 'Day'}`
+        );
 
     } catch (e) {
-        this.updateDebugger(`Error in update(): ${e.message}`);
+        this.updateDebugger(`RUNTIME ERROR in update(): ${e.message}. Game stopped.`);
         console.error("Error in update():", e);
         this.gameRunning = false; // Stop game on error
     }
@@ -398,18 +419,22 @@ class Game {
     this.obstacles = []; this.setNextSpawnDistance();
     this.updateScoreDisplay();
     this.gameOverScreen.style.display = 'none';
-    this.updateDebugger('Game restarted.');
+    this.updateDebugger('Game restarted. Good luck!');
   }
 
   updateBestScoreDisplay() { this.bestScoreDisplay.textContent = this.bestScore; }
 
   gameLoop() {
-    try { // Wrap gameLoop in try-catch
+    if (!this.gameRunning) {
+        // If game is not running, stop calling requestAnimationFrame
+        return;
+    }
+    try {
         this.update();
         this.draw();
         requestAnimationFrame(() => this.gameLoop());
     } catch (e) {
-        this.updateDebugger(`Error in gameLoop: ${e.message}`);
+        this.updateDebugger(`CRITICAL ERROR in gameLoop: ${e.message}. Loop stopped.`);
         console.error("Error in gameLoop:", e);
         this.gameRunning = false; // Stop the loop on error
     }
@@ -417,16 +442,15 @@ class Game {
 }
 
 // Wrap the game initialization in a window.addEventListener('load') to ensure all DOM elements are ready
-// Also add a try-catch for the initial load to catch immediate errors
+// This also ensures 'this.debuggerDisplay' is available in the Game constructor's try-catch.
 window.addEventListener('load', () => {
     try {
         new Game();
     } catch (e) {
-        // If debuggerDisplay isn't ready yet, log to console as fallback
         const debuggerElem = document.getElementById('debuggerDisplay');
         if (debuggerElem) {
-            debuggerElem.textContent = `CRITICAL Error: ${e.message}. See console.`;
+            debuggerElem.textContent = `FATAL Error on load: ${e.message}. Check console.`;
         }
-        console.error("Critical error during game initialization on load:", e);
+        console.error("Fatal error during game initialization on load:", e);
     }
 });
