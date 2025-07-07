@@ -1,8 +1,30 @@
 // game.js
 class Game {
   constructor() {
+    // Basic properties
     this.canvas = document.getElementById('gameCanvas');
     this.ctx = this.canvas.getContext('2d');
+    this.gameRunning = true;
+    this.score = 0;
+    this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
+    this.speed = 3;
+    this.distance = 0;
+
+    // FIX: Define the player object BEFORE setupCanvas is called.
+    this.player = {
+      x: 100,
+      y: 0, // y will be correctly set in setupCanvas
+      width: 40,
+      height: 60,
+      velY: 0,
+      jumping: false,
+      grounded: true,
+      isDucking: false,
+      runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 },
+      duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 }
+    };
+
+    // Now it's safe to call setupCanvas, which uses this.player
     this.setupCanvas();
 
     // UI Elements
@@ -11,33 +33,12 @@ class Game {
     this.bestScoreDisplay = document.getElementById('bestScore');
     this.gameOverScreen = document.getElementById('gameOver');
 
-    this.gameRunning = true;
-    this.score = 0;
-    this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
-    this.speed = 3;
-    this.distance = 0;
-
-    this.player = {
-      x: 100,
-      y: this.groundY - 60,
-      width: 40,
-      height: 60,
-      velY: 0,
-      jumping: false,
-      grounded: true,
-      isDucking: false,
-      // Hitboxes
-      runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 },
-      duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 }
-    };
-
     // Control flags
     this.jumpRequested = false;
 
     // Obstacle Management
     this.obstacles = [];
     this.distanceToNextSpawn = 0;
-    // CRITICAL FIX: Added a missing comma after the 'high_bird' object
     this.obstaclePatterns = [
         { type: 'single_cactus', minSpeed: 0 },
         { type: 'single_rock', minSpeed: 0 },
@@ -47,6 +48,7 @@ class Game {
 
     this.clouds = this.createClouds();
 
+    // Final setup
     this.bindEvents();
     this.updateBestScoreDisplay();
     this.setNextSpawnDistance();
@@ -59,6 +61,7 @@ class Game {
     this.canvas.width = maxW;
     this.canvas.height = maxH;
     this.groundY = maxH - 40;
+    // This line no longer causes an error because this.player exists.
     this.player.y = this.groundY - this.player.height;
   }
 
@@ -178,13 +181,13 @@ class Game {
     if (this.distanceToNextSpawn <= 0) {
         this.spawnObstacles();
     }
-    
+
     for (let i = this.obstacles.length - 1; i >= 0; i--) {
         const obs = this.obstacles[i];
         obs.x -= this.speed;
 
         obs.y = (obs.type === 'bird') ? this.groundY - 80 : this.groundY - obs.h;
-        
+
         const hitbox = this.player.isDucking ? this.player.duckHitbox : this.player.runHitbox;
         const playerHitbox = {
             x: this.player.x + hitbox.x_offset,
@@ -192,7 +195,7 @@ class Game {
             width: hitbox.width,
             height: hitbox.height
         };
-      
+
         if (
             playerHitbox.x < obs.x + obs.w &&
             playerHitbox.x + playerHitbox.width > obs.x &&
@@ -213,12 +216,12 @@ class Game {
         cloud.x -= cloud.speed;
         if (cloud.x + cloud.w < 0) cloud.x = this.canvas.width;
     });
-    
+
     if (this.player.jumping) {
         this.jumpRequested = false;
     }
   }
-  
+
   drawPlayer(px, py) {
     const ctx = this.ctx;
 
@@ -283,7 +286,7 @@ class Game {
     ctx.fillRect(0, 0, this.canvas.width, this.groundY);
     ctx.fillStyle = '#DEB887';
     ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
-    
+
     ctx.fillStyle = 'rgba(255,255,255,0.8)';
     this.clouds.forEach(cloud => {
       ctx.beginPath();
@@ -320,13 +323,13 @@ class Game {
   gameOver() {
     this.gameRunning = false;
     this.finalScoreDisplay.textContent = this.score;
-    
+
     if (this.score > this.bestScore) {
         this.bestScore = this.score;
         localStorage.setItem('tarboushBestScore', this.bestScore);
     }
     this.updateBestScoreDisplay();
-    
+
     this.gameOverScreen.style.display = 'block';
   }
 
@@ -343,7 +346,7 @@ class Game {
     this.jumpRequested = false;
     this.obstacles = [];
     this.setNextSpawnDistance();
-    
+
     this.scoreDisplay.textContent = 'Score: 0';
     this.gameOverScreen.style.display = 'none';
   }
