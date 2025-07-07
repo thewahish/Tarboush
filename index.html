@@ -49,24 +49,32 @@
       transition: background-color 0.5s ease;
     }
 
-    /* --- Default (Portrait Mode): Hide game elements, show warning and character select --- */
+    /* --- Default state for all UI elements (managed by JS) --- */
+    /* They are given a display type (flex/block) here, but JS will set display: none or display: flex/block */
     .game-container,
     #ui-container,
     .action-button,
-    #debuggerDisplay {
-        display: none; /* Hidden by default */
+    #debuggerDisplay,
+    #characterSelectScreen,
+    #gameOver,
+    #orientation-warning {
+        position: absolute; /* All position:absolute for JS control */
+        top: 0; left: 0; width: 100%; height: 100%; /* Default full screen covering */
+        box-sizing: border-box; /* Include padding/border in width/height */
+        display: none; /* Hidden by default, JS controls visibility */
     }
-    #characterSelectScreen { /* Character select screen visible by default (in portrait) */
-        display: flex;
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: var(--bg-color-main);
-        flex-direction: column; justify-content: center; align-items: center;
-        color: var(--ui-text-main); z-index: 150;
-        text-align: center;
-        padding: 20px;
-        box-sizing: border-box;
-        transition: background-color 0.5s ease, color 0.5s ease;
-    }
+
+    /* Specific element display types when shown by JS */
+    .game-container { display: flex; justify-content: center; align-items: center; }
+    #ui-container { display: flex; justify-content: center; align-items: center; pointer-events: none; }
+    .action-button { display: flex; justify-content: center; align-items: center; pointer-events: auto; }
+    #debuggerDisplay { display: flex; align-items: flex-start; text-align: left; }
+    #characterSelectScreen { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; }
+    #gameOver { display: block; text-align: center; padding: 30px; } /* Game over is a block dialog */
+    #score { display: block; /* Score is a block element within ui-container */ }
+    canvas { display: block; /* Canvas is a block element */ }
+
+
     #characterSelectScreen h2 {
         font-size: 2.2em; margin-bottom: 20px; color: var(--revolutionary-red);
     }
@@ -76,6 +84,8 @@
         gap: 15px;
         margin-bottom: 30px;
         max-width: 300px; /* Limit grid width */
+        margin-left: auto; /* Center grid */
+        margin-right: auto;
     }
     .character-slot {
         background: rgba(0,0,0,0.5); border-radius: 10px; padding: 15px;
@@ -114,44 +124,15 @@
 
 
     #orientation-warning {
-        display: flex; /* Show warning by default (in portrait) */
-        flex-direction: column;
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         background: #111; color: #fff; z-index: 200;
         justify-content: center; align-items: center;
         text-align: center; font-size: 18px;
+        flex-direction: column;
     }
     #orientation-warning p { font-size: 2em; margin-bottom: 20px; }
 
 
-    /* --- Landscape Mode: Show game elements, hide warning and character select --- */
-    @media (orientation: landscape) {
-        #characterSelectScreen, /* Hide character select in landscape if playing */
-        #orientation-warning {
-            display: none;
-        }
-
-        .game-container,
-        #ui-container,
-        .action-button,
-        #debuggerDisplay {
-            display: flex; /* Adjust to block/flex as needed for specific containers */
-        }
-        canvas {
-          display: block; /* Ensure canvas is shown */
-        }
-        #score, #gameOver {
-            display: block;
-        }
-        .action-button {
-            display: flex;
-        }
-        #debuggerDisplay {
-            display: flex;
-        }
-    }
-
-    /* UI element positioning specific to landscape */
+    /* UI element positioning */
     #score {
       position: absolute;
       top: 90px;
@@ -178,13 +159,8 @@
       font-weight: bold;
       cursor: pointer;
       z-index: 100;
-      pointer-events: auto;
       box-shadow: 0 0 12px rgba(0,0,0,0.3);
       -webkit-tap-highlight-color: transparent;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background-color: var(--ui-button-bg);
       transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
     }
     #jumpButton {
@@ -196,14 +172,10 @@
     #gameOver {
       background: var(--ui-gameover-bg);
       color: var(--ui-text-main);
-      padding: 30px;
       border-radius: 15px;
-      text-align: center;
-      display: none; /* Controlled by JS */
-      pointer-events: auto;
       width: 250px;
-      transition: background-color 0.5s ease, color 0.5s ease;
       z-index: 200;
+      transition: background-color 0.5s ease, color 0.5s ease;
     }
     #gameOver h2 {
         margin-top: 0;
@@ -234,15 +206,12 @@
         font-family: 'Courier New', monospace;
         font-size: 11px;
         padding: 5px;
-        box-sizing: border-box;
         overflow: hidden;
         white-space: pre-wrap;
         z-index: 90;
         pointer-events: none;
-        display: flex; /* Controlled by landscape media query */
         align-items: flex-start;
         line-height: 1.2;
-        text-align: left;
     }
   </style>
 </head>
