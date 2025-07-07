@@ -6,7 +6,6 @@ class Game {
     if (!this.debuggerDisplay) {
         // Fallback to console if debugger display isn't available
         console.error("CRITICAL: Debugger display element #debuggerDisplay not found!");
-        // A simple alert might be disruptive, so relying on console is safer.
     }
     this.updateDebugger("Initializing Game Class...");
     
@@ -36,6 +35,15 @@ class Game {
         this.distance = 0;
         this.lastScoredDistance = 0;
 
+        // --- FIX: Player object defined BEFORE setupCanvas() ---
+        this.player = {
+            x: 100, y: 0, width: 40, height: 60,
+            velY: 0, jumping: false, grounded: true, isDucking: false,
+            runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 },
+            duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 }
+        };
+        // --- END FIX ---
+
         this.isNightMode = false;
         this.themeColors = {
           day: {
@@ -64,7 +72,7 @@ class Game {
           }
         };
 
-        this.setupCanvas();
+        this.setupCanvas(); // Now this will find this.player
 
         this.scoreDisplay = document.getElementById('score');
         if (!this.scoreDisplay) throw new Error("scoreDisplay element not found!");
@@ -109,7 +117,7 @@ class Game {
     this.canvas.width = maxW;
     this.canvas.height = maxH;
     this.groundY = maxH - 40;
-    this.player.y = this.groundY - this.player.height;
+    this.player.y = this.groundY - this.player.height; // This line now works
   }
 
   createClouds() {
@@ -137,20 +145,17 @@ class Game {
     this.updateDebugger(`Day/Night toggled to ${this.isNightMode ? 'Night' : 'Day'} Mode.`);
   }
 
-  // --- UPDATED: Update Debugger Display Method ---
   updateDebugger(message) {
       if (this.debuggerDisplay) {
-          // Add a timestamp for better debugging
           const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
           this.debuggerDisplay.textContent = `[${timestamp}] ${message}`;
       } else {
-          // Fallback to console if debugger display isn't available for some reason
           console.log(`[Debugger FB - No UI]: ${message}`);
       }
   }
 
   bindEvents() {
-    try { // Wrap event binding in try-catch for debugging
+    try {
         document.addEventListener('keydown', (e) => {
             if (e.code === 'Space' || e.key === 'ArrowUp') { e.preventDefault(); this.jumpRequested = true; }
             else if (e.key === 'ArrowDown') { e.preventDefault(); this.player.isDucking = true; if (!this.player.grounded) { this.player.velY += 5; } }
@@ -197,7 +202,7 @@ class Game {
     } catch (e) {
         this.updateDebugger(`ERROR binding events: ${e.message}. Game might not respond to input.`);
         console.error("Error binding events:", e);
-        this.gameRunning = false; // Potentially halt if input is crucial
+        this.gameRunning = false;
     }
   }
 
@@ -233,7 +238,6 @@ class Game {
 
   update() {
     if (!this.gameRunning) {
-        // No need to constantly update debugger here if game is stopped
         return;
     }
 
@@ -299,7 +303,6 @@ class Game {
         this.clouds.forEach(c => { c.x -= c.speed; if (c.x + c.w < 0) c.x = this.canvas.width; });
         if (this.player.jumping) this.jumpRequested = false;
 
-        // --- UPDATED: Update debugger with live data ---
         this.updateDebugger(
             `Score: ${Math.floor(this.score)} | Speed: ${this.speed.toFixed(2)}\n` +
             `Player Y: ${Math.floor(this.player.y)} | Obstacles: ${this.obstacles.length}\n` +
@@ -426,7 +429,6 @@ class Game {
 
   gameLoop() {
     if (!this.gameRunning) {
-        // If game is not running, stop calling requestAnimationFrame
         return;
     }
     try {
@@ -436,13 +438,12 @@ class Game {
     } catch (e) {
         this.updateDebugger(`CRITICAL ERROR in gameLoop: ${e.message}. Loop stopped.`);
         console.error("Error in gameLoop:", e);
-        this.gameRunning = false; // Stop the loop on error
+        this.gameRunning = false;
     }
   }
 }
 
 // Wrap the game initialization in a window.addEventListener('load') to ensure all DOM elements are ready
-// This also ensures 'this.debuggerDisplay' is available in the Game constructor's try-catch.
 window.addEventListener('load', () => {
     try {
         new Game();
