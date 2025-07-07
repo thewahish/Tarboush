@@ -249,7 +249,7 @@ class Game {
           // In landscape, we show game or character select or game over
           if (this.currentGameState === 'playing') {
               this.gameContainer.style.display = 'flex'; // Game canvas container
-              this.uiContainer.style.display = 'flex';   // UI container (score, etc.)
+              this.uiContainer.style.display = 'flex';   // UI (score, etc.)
               this.jumpButton.style.display = 'flex';    // Action buttons
               this.duckButton.style.display = 'flex';
               this.debuggerDisplay.style.display = 'flex'; // Debugger
@@ -303,6 +303,8 @@ class Game {
                   // Update visual selection
                   characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
                   slot.classList.add('selected');
+                  // --- FIX: Character click now starts the game directly ---
+                  this.startGame(); 
               });
           } else {
               slot.classList.add('grayed-out');
@@ -310,8 +312,15 @@ class Game {
           characterGrid.appendChild(slot);
       });
 
+      // --- FIX: Start game button is no longer strictly necessary if character click starts game, but keep it as alternative ---
       if (this.startGameBtn) {
-          this.startGameBtn.onclick = () => this.startGame(); // Bind to startGame
+          // Ensure it's not double-bound if character click already starts the game
+          this.startGameBtn.onclick = null; // Clear previous handler
+          this.startGameBtn.onclick = () => {
+              if (this.currentGameState === 'characterSelect') { // Only allow click if still on select screen
+                  this.startGame();
+              }
+          }; 
       } else {
           this.updateDebugger("Error: start-game-btn not found!");
           console.error("Error: start-game-btn not found!");
@@ -322,6 +331,7 @@ class Game {
 
 
   // --- NEW: Starts or restarts the game from character select or game over ---
+  // This is called when a character is selected OR 'Play Again' is pressed.
   startGame() {
     console.log("[startGame DEBUG] Starting new game...");
     this.updateDebugger('Starting new game...');
