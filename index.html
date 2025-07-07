@@ -1,180 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tarboush Runner - Color Mockup</title>
-    <style>
-        /* --- Revised Color Palette --- */
-        :root {
-            --syrian-green: #007A3D;
-            --syrian-white: #FFFFFF;
-            --syrian-black: #000000;
-            --revolutionary-red: #CE1126;
-            --eagle-gold: #B5A677;
-            --sky-color: #36454F; /* Charcoal */
-            --ground-color: #A0522D; /* Sienna */
-        }
-
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            background-color: #333;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        .phone-mockup {
-            width: 375px;
-            height: 812px;
-            background-color: #111;
-            border-radius: 40px;
-            border: 10px solid #444;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .game-screen {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            background-color: var(--sky-color);
-            overflow: hidden;
-            border-radius: 20px;
-        }
-
-        .ground {
-            position: absolute;
-            bottom: 0;
-            width: 100%;
-            height: 30%;
-            background-color: var(--ground-color);
-        }
-
-        .player {
-            position: absolute;
-            bottom: 30%;
-            left: 50px;
-            width: 40px;
-            height: 60px;
-        }
-
-        .player .tarboush {
-            width: 24px;
-            height: 15px;
-            background-color: var(--revolutionary-red);
-            margin: 0 auto;
-            border-radius: 10px 10px 0 0;
-        }
-
-        .player .head {
-            width: 20px;
-            height: 20px;
-            background-color: #FDBCB4;
-            margin: 0 auto;
-            border-radius: 50%;
-        }
-
-        .player .body {
-            width: 16px;
-            height: 25px;
-            background-color: var(--syrian-white);
-            margin: 0 auto;
-        }
-
-        .obstacle {
-            position: absolute;
-            bottom: 30%;
-        }
-
-        .cactus {
-            right: 80px;
-            width: 30px;
-            height: 50px;
-            background-color: var(--syrian-green);
-        }
-
-        .bird {
-            right: 20px;
-            bottom: 45%;
-            width: 40px;
-            height: 30px;
-            background-color: var(--syrian-black);
-            clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-        }
-
-        .ui-element {
-            position: absolute;
-            color: var(--syrian-white);
-            font-weight: bold;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 14px;
-        }
-
-        .jump-button {
-            bottom: 20px;
-            right: 20px;
-            width: 70px;
-            height: 70px;
-            background-color: var(--syrian-green);
-            border: 4px solid var(--syrian-white);
-        }
-
-        .duck-button {
-            bottom: 20px;
-            left: 20px;
-            width: 70px;
-            height: 70px;
-            background-color: var(--syrian-green);
-            border: 4px solid var(--syrian-white);
-        }
-
-        .score {
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.5);
-            padding: 10px 20px;
-            border-radius: 20px;
-            font-size: 18px;
-        }
-
-        .game-over-text {
-            top: 40%;
-            left: 50%;
-            transform: translateX(-50%);
-            color: var(--revolutionary-red);
-            font-size: 24px;
-            text-shadow: 1px 1px 2px var(--syrian-black);
-        }
-
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tarboush Runner</title>
+  <style>
+    :root {
+        --syrian-green: #007A3D;
+        --syrian-white: #FFFFFF;
+        --syrian-black: #000000;
+        --revolutionary-red: #CE1126;
+        --sky-color: #36454F; /* Charcoal */
+        --ground-color: #A0522D; /* Sienna */
+    }
+    html, body {
+      margin: 0; padding: 0; overflow: hidden;
+      background: var(--ground-color);
+      font-family: 'Helvetica Neue', Arial, sans-serif;
+      height: 100%;
+      touch-action: manipulation;
+    }
+    .game-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+    canvas {
+      display: block;
+      background: var(--sky-color); /* Updated sky color */
+      border: 3px solid var(--syrian-black);
+      border-radius: 10px;
+    }
+    #ui-container {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #score {
+      position: absolute;
+      top: 15px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      color: var(--syrian-white);
+      padding: 10px 20px;
+      font-weight: bold;
+      border-radius: 25px;
+      font-size: 18px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .action-button {
+      position: absolute;
+      bottom: 25px;
+      width: 70px;
+      height: 70px;
+      color: var(--syrian-white);
+      border: 4px solid var(--syrian-white);
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      z-index: 100;
+      pointer-events: auto;
+      box-shadow: 0 0 12px rgba(0,0,0,0.3);
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: var(--syrian-green); /* Updated button color */
+    }
+    #jumpButton {
+      right: 25px;
+    }
+    #duckButton {
+      left: 25px;
+    }
+    #gameOver {
+      background: rgba(0,0,0,0.85);
+      color: var(--syrian-white);
+      padding: 30px;
+      border-radius: 15px;
+      text-align: center;
+      display: none;
+      pointer-events: auto;
+      width: 250px;
+    }
+    #gameOver h2 {
+        margin-top: 0;
+        color: var(--revolutionary-red); /* Updated Game Over color */
+        font-size: 2em;
+    }
+    #restartBtn {
+      padding: 12px 25px;
+      font-size: 16px;
+      background: var(--syrian-green); /* Updated button color */
+      color: var(--syrian-white);
+      border: none;
+      border-radius: 20px;
+      cursor: pointer;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    #orientation-warning {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #111; color: #fff; z-index: 200;
+      justify-content: center; align-items: center;
+      text-align: center; font-size: 18px;
+    }
+    #orientation-warning p { font-size: 2em; margin-bottom: 20px; }
+    @media (orientation: landscape) {
+      #orientation-warning { display: flex; flex-direction: column; }
+      .game-container, #ui-container, .action-button { display: none; }
+    }
+  </style>
 </head>
 <body>
-    <div class="phone-mockup">
-        <div class="game-screen">
-            <div class="ground"></div>
-
-            <div class="player">
-                <div class="tarboush"></div>
-                <div class="head"></div>
-                <div class="body"></div>
-            </div>
-
-            <div class="obstacle cactus"></div>
-            <div class="obstacle bird"></div>
-
-            <div class="ui-element score">Score: 120</div>
-            <div class="ui-element jump-button">JUMP</div>
-            <div class="ui-element duck-button">DUCK</div>
-            <div class="ui-element game-over-text">Game Over!</div>
-        </div>
+  <div class="game-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+  <div id="ui-container">
+    <div id="score">Score: 0</div>
+    <div id="gameOver">
+      <h2>Game Over!</h2>
+      <p>Final Score: <span id="finalScore">0</span></p>
+      <p>Best Score: <span id="bestScore">0</span></p>
+      <button id="restartBtn">Play Again</button>
     </div>
+  </div>
+  <button id="jumpButton" class="action-button">JUMP</button>
+  <button id="duckButton" class="action-button">DUCK</button>
+  <div id="orientation-warning">
+    <div>
+        <p>🔄</p>
+        Please rotate your device to portrait mode.
+    </div>
+  </div>
+  <script src="game.js"></script>
 </body>
 </html>
