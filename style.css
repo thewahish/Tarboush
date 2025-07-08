@@ -36,7 +36,10 @@ body.night-mode {
 }
 
 html, body {
-  margin: 0; padding: 0; overflow: hidden;
+  margin: 0; padding: 0;
+  /* Changed from overflow: hidden; */
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  overflow-y: auto; /* Allow vertical scrolling if needed, overridden by .game-screen below */
   background: var(--bg-color-main);
   font-family: 'Helvetica Neue', Arial, sans-serif;
   height: 100%;
@@ -54,12 +57,30 @@ html, body {
 }
 
 /* Specific display types when they are made visible by JS (to ensure correct layout) */
+/* The game-container, gameOver, and orientation-warning should usually fill the screen without scrolling */
+.game-container, #gameOver, #orientation-warning {
+    overflow: hidden; /* Prevent scrolling for these game screens */
+}
 .game-container { justify-content: center; align-items: center; }
 #ui-container { justify-content: center; align-items: center; pointer-events: none; }
 .action-button { justify-content: center; align-items: center; pointer-events: auto; }
 #debuggerDisplay { align-items: flex-start; text-align: left; }
-#characterSelectScreen { flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding-top: 50px; }
-#gameOver { display: flex; justify-content: center; align-items: center; pointer-events: auto; z-index: 200; }
+
+#characterSelectScreen {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    text-align: center;
+    padding-top: 50px; /* Default */
+    overflow-y: auto; /* Enable scrolling for character select screen if content overflows */
+    -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
+}
+/* Responsive padding for character select screen */
+@media (max-height: 600px) { /* Adjust padding for shorter screens */
+    #characterSelectScreen {
+        padding-top: 20px;
+    }
+}
 
 
 #characterSelectScreen h2 {
@@ -151,29 +172,29 @@ html, body {
 }
 .action-button {
   position: absolute;
-  bottom: 50px;
-  width: 90px;
-  height: 90px;
+  bottom: 30px; /* Reduced from 50px */
+  width: 75px; /* Reduced from 90px */
+  height: 75px; /* Reduced from 90px */
   color: var(--ui-text-main);
-  background-color: var(--ui-button-bg); /* Added background color */
+  background-color: var(--ui-button-bg);
   border: 4px solid var(--button-border-color);
   border-radius: 50%;
-  font-size: 22px;
+  font-size: 20px; /* Slightly reduced font size */
   font-weight: bold;
   cursor: pointer;
   z-index: 100;
   box-shadow: 0 0 12px rgba(0,0,0,0.3);
-  -webkit-tap-highlight-color: transparent; /* Prevent default tap highlight */
+  -webkit-tap-highlight-color: transparent;
   transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
 }
 .action-button:active {
-    transform: scale(0.95); /* Little press effect */
+    transform: scale(0.95);
 }
 #jumpButton {
-  right: 25px;
+  right: 20px; /* Reduced from 25px */
 }
 #duckButton {
-  left: 25px;
+  left: 20px; /* Reduced from 25px */
 }
 #gameOver-content {
     background: var(--ui-gameover-bg);
@@ -203,7 +224,7 @@ html, body {
   transition: background-color 0.5s ease, color 0.5s ease;
 }
 #restartBtn:hover {
-    background-color: var(--revolutionary-red); /* Hover effect */
+    background-color: var(--revolutionary-red);
 }
 #debuggerDisplay {
     position: absolute;
@@ -216,12 +237,13 @@ html, body {
     font-family: 'Courier New', monospace;
     font-size: 11px;
     padding: 5px;
-    overflow: hidden;
+    overflow: hidden; /* Ensure text wraps but doesn't scroll within the small debugger box */
     white-space: pre-wrap;
     z-index: 90;
     pointer-events: none; /* Allows clicks to pass through */
     align-items: flex-start;
     line-height: 1.2;
+    /* This will be managed by JS display:flex */
 }
 
 canvas {
