@@ -4,9 +4,12 @@ class Game {
         this.debuggerDisplay = document.getElementById('debuggerDisplay');
         if (!this.debuggerDisplay) {
             console.error("CRITICAL: Debugger display element #debuggerDisplay not found!");
-            // If debugger isn't found, we can't update it, but game might continue.
+            // This error will likely be caught by the global error handler.
+            // No direct updateDebugger here if element truly not found.
+        } else {
+            this.updateDebugger("Initializing Game Class...");
         }
-        this.updateDebugger("Initializing Game Class...");
+
 
         // Add a global error handler to catch any uncaught errors
         window.onerror = (message, source, lineno, colno, error) => {
@@ -212,6 +215,7 @@ class Game {
 
     // --- Debugger ---
     updateDebugger(message) {
+        // Ensure debuggerDisplay is available before trying to update it
         if (this.debuggerDisplay) {
             const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
             this.debuggerDisplay.textContent = `[${timestamp}] ${message}`;
@@ -226,10 +230,14 @@ class Game {
 
         // Hide all main UI containers and screens initially
         document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+        // Ensure the debugger is also hidden by default here to prevent it from showing at wrong times
+        if (this.debuggerDisplay) { // Check if it's initialized before trying to access
+            this.debuggerDisplay.style.display = 'none';
+        }
         this.uiContainer.style.display = 'none'; // Separate from .game-screen
         this.jumpButton.style.display = 'none';
         this.duckButton.style.display = 'none';
-        this.debuggerDisplay.style.display = 'none'; // Debugger hidden by default (will be shown if appropriate state/orientation)
+
 
         // Show elements based on Orientation and currentGameState
         if (isLandscape) {
@@ -239,23 +247,24 @@ class Game {
                 this.scoreDisplay.style.display = 'block'; // Ensure score is block/flex if parent is flex
                 this.jumpButton.style.display = 'flex';
                 this.duckButton.style.display = 'flex';
-                this.debuggerDisplay.style.display = 'flex'; // Show debugger in game
+                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Show debugger in game
             } else if (this.currentGameState === 'gameOver') {
                 this.gameContainer.style.display = 'flex'; // Keep canvas visible as background
                 this.uiContainer.style.display = 'flex'; // Score display may still be visible below debugger
                 this.scoreDisplay.style.display = 'block';
                 this.gameOverScreen.style.display = 'flex';
-                this.debuggerDisplay.style.display = 'flex'; // Show debugger on game over
+                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Show debugger on game over
             } else if (this.currentGameState === 'characterSelect') {
                 this.characterSelectScreen.style.display = 'flex';
-                this.debuggerDisplay.style.display = 'flex'; // Show debugger on character select
+                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Show debugger on character select
             } else if (this.currentGameState === 'error') {
-                this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible if there's an error
-                // You might also want to display a simplified error message on screen
+                // In case of a critical error, show the debugger and potentially the game container
+                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex';
+                this.gameContainer.style.display = 'flex'; // Show canvas for context if error happened mid-game
             }
         } else { // Portrait mode
             this.orientationWarning.style.display = 'flex';
-            this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible even in portrait to show warnings
+            if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible even in portrait to show warnings
         }
     }
 
@@ -300,13 +309,16 @@ class Game {
         // The start game button now explicitly starts the game after selection
         if (this.startGameBtn) {
             // Remove previous listener to prevent double-binding
-            this.startGameBtn.removeEventListener('click', this.startGameHandler); // Ensure handler is reference
-            this.startGameHandler = () => { // Create a new handler to bind correctly
+            // Ensure the handler is the same function reference each time
+            if (this._startGameButtonHandler) { // Check if handler exists
+                this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
+            }
+            this._startGameButtonHandler = () => { // Store handler in a property
                 if (this.currentGameState === 'characterSelect') {
                     this.startGame();
                 }
             };
-            this.startGameBtn.addEventListener('click', this.startGameHandler);
+            this.startGameBtn.addEventListener('click', this._startGameButtonHandler);
         } else {
             this.updateDebugger("Error: start-game-btn not found!");
             console.error("Error: start-game-btn not found!");
@@ -713,21 +725,22 @@ class Game {
 
 
     // --- Debugging Helper: Draw Hitboxes ---
-    _drawHitboxes() {
-        this.ctx.strokeStyle = 'red';
-        this.ctx.lineWidth = 2;
+    // Uncomment this method call in draw() to visualize hitboxes
+    // _drawHitboxes() {
+    //     this.ctx.strokeStyle = 'red';
+    //     this.ctx.lineWidth = 2;
 
-        // Player Hitbox
-        const p = this.player;
-        const currentHitbox = p.isDucking ? p.duckHitbox : p.runHitbox;
-        this.ctx.strokeRect(p.x + currentHitbox.x_offset, p.y + currentHitbox.y_offset, currentHitbox.width, currentHitbox.height);
+    //     // Player Hitbox
+    //     const p = this.player;
+    //     const currentHitbox = p.isDucking ? p.duckHitbox : p.runHitbox;
+    //     this.ctx.strokeRect(p.x + currentHitbox.x_offset, p.y + currentHitbox.y_offset, currentHitbox.width, currentHitbox.height);
 
-        // Obstacle Hitboxes
-        this.obstacles.forEach(obs => {
-            const o_hitbox = obs.hitbox;
-            this.ctx.strokeRect(obs.x + o_hitbox.x_offset, obs.y + o_hitbox.y_offset, o_hitbox.width, o_hitbox.height);
-        });
-    }
+    //     // Obstacle Hitboxes
+    //     this.obstacles.forEach(obs => {
+    //         const o_hitbox = obs.hitbox;
+    //         this.ctx.strokeRect(obs.x + o_hitbox.x_offset, obs.y + o_hitbox.y_offset, o_hitbox.width, o_hitbox.height);
+    //     });
+    // }
 
     // --- Event Binding ---
     bindEvents() {
@@ -774,10 +787,8 @@ class Game {
         });
 
         document.addEventListener('keyup', (e) => {
-            if (this.currentGameState === 'playing') {
-                if (e.code === 'ArrowDown' && this.player.isDucking) {
-                    this.player.isDucking = false;
-                }
+            if (this.currentGameState === 'ArrowDown' && this.player.isDucking) { // Fix: Should be e.code === 'ArrowDown'
+                this.player.isDucking = false;
             }
         });
 
