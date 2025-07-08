@@ -1,47 +1,54 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>لحّق إذا بتلحق</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>لحّق إذا بتلحق</title>
+  <link rel="stylesheet" href="style.css"> <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-    <div class="game-container game-screen">
-        <canvas id="gameCanvas"></canvas>
+  <div id="loader" class="loader-screen">
+    <div class="character-enter">
+      <div class="loader-character-image"></div>
     </div>
+  </div>
 
-    <div id="characterSelectScreen" class="game-screen">
-        <h1>لحّق إذا بتلحق</h1>
-        <h2>اختر شخصيتك</h2>
-        <div class="character-grid"></div>
-        <button id="start-game-btn">ابدأ اللعب</button>
-        <p class="coming-soon-text">مزيد من الشخصيات قريباً</p>
+  <div class="game-container game-screen">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+
+  <div id="characterSelectScreen" class="game-screen">
+    <h1>لحّق إذا بتلحق</h1>
+    <h2>اختر شخصيتك</h2>
+    <div class="character-grid"></div>
+    <button id="start-game-btn">ابدأ اللعب</button>
+    <p class="coming-soon-text">مزيد من الشخصيات قريباً</p>
+  </div>
+
+  <div id="gameOver" class="game-screen">
+    <div id="gameOver-content">
+      <h2>انتهت اللعبة!</h2>
+      <p>النتيجة النهائية: <span id="finalScore">0</span></p>
+      <p>أفضل نتيجة: <span id="bestScore">0</span></p>
+      <button id="restartBtn">العب مرة أخرى</button>
     </div>
+  </div>
 
-    <div id="gameOver" class="game-screen">
-        <div id="gameOver-content">
-            <h2>انتهت اللعبة!</h2>
-            <p>النتيجة النهائية: <span id="finalScore">0</span></p>
-            <p>أفضل نتيجة: <span id="bestScore">0</span></p>
-            <button id="restartBtn">العب مرة أخرى</button>
-        </div>
+  <div id="ui-container" class="game-screen">
+    <div id="score">نقاط: 0 ليرة سوري</div>
+  </div>
+
+  <button id="jumpButton" class="action-button">نط</button>
+  <button id="duckButton" class="action-button">طخّي</button>
+  <div id="debuggerDisplay" class="game-screen">Debugger: Initializing...</div>
+  
+  <div id="orientation-warning" class="game-screen">
+    <div>
+        <p>🔄</p>
+        الرجاء تدوير جهازك إلى الوضع الأفقي للعب.
     </div>
+  </div>
 
-    <div id="ui-container" class="game-screen">
-        <div id="score">نقاط: 0</div>
-    </div>
-
-    <button id="jumpButton" class="action-button">نط</button>
-    <button id="duckButton" class="action-button">طخّي</button>
-    
-    <div id="orientation-warning" class="game-screen">
-        <div>
-            <p style="font-size: 3em; margin-bottom: 20px;">🔄</p>
-            <p>الرجاء تدوير جهازك إلى الوضع الأفقي للعب.</p>
-        </div>
-    </div>
-
-    <script src="game.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
