@@ -56,6 +56,7 @@ html, body {
     transition: background 0.5s ease;
 }
 
+/* --- Base display properties for all main game screens/containers --- */
 .game-screen {
     position: absolute;
     top: 0;
@@ -63,8 +64,47 @@ html, body {
     width: 100%;
     height: 100%;
     box-sizing: border-box;
-    display: none;
+    display: none; /* JS controls visibility */
 }
+
+/* --- Loader Screen Styling --- */
+#loader.loader-screen { /* Use the .loader-screen class for JS visibility management */
+    background-color: var(--bg-color-main); /* Match page background */
+    display: flex; /* Always flex to center content */
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; /* Ensure it's on top during load */
+    transition: opacity 0.5s ease; /* For fading out */
+}
+
+.character-enter {
+    position: absolute; /* Relative to #loader */
+    top: -100px; /* Start off-screen */
+    animation: enterFromTop 1s ease-out forwards; /* Animation applies here */
+}
+
+@keyframes enterFromTop {
+    from {
+        top: -100px;
+        opacity: 0;
+    }
+    to {
+        top: 50%;
+        transform: translateY(-50%); /* Center vertically after animation */
+        opacity: 1;
+    }
+}
+
+.loader-character-image {
+    width: 80px; /* Example size */
+    height: 112px; /* Example size */
+    background-image: url('https://cdn.jsdelivr.net/gh/mazenovi/tarboush-assets/character_run.png'); /* Character image */
+    background-size: cover;
+    image-rendering: pixelated; /* For pixel art style */
+}
+
+
+/* --- Other Game Screens and UI --- */
 
 .game-container {
     justify-content: center;
@@ -89,10 +129,10 @@ html, body {
     justify-content: flex-start;
     align-items: center;
     text-align: center;
-    padding-top: 30px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    background: var(--bg-color-main);
+    padding-top: 30px; /* Adjusted to give space for title */
+    overflow-y: auto; /* Allow scrolling if content overflows */
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    background: var(--bg-color-main); /* Match background */
 }
 
 #gameOver {
@@ -116,16 +156,16 @@ html, body {
 
 /* Character Select Styling - Official Syrian Colors */
 #characterSelectScreen h1 {
-    font-size: clamp(2.5em, 8vw, 3.5em);
+    font-size: clamp(2.5em, 8vw, 3.5em); /* Responsive font size */
     margin-bottom: 15px;
     color: var(--forest-secondary);
     text-shadow: none;
     font-weight: 300;
-    font-family: 'Georgia', serif;
+    font-family: 'Georgia', serif; /* Custom font for title */
 }
 
 #characterSelectScreen h2 {
-    font-size: clamp(1.5em, 5vw, 2em);
+    font-size: clamp(1.5em, 5vw, 2em); /* Responsive font size */
     margin-bottom: 25px;
     color: var(--golden-wheat-dark);
     text-shadow: none;
@@ -134,27 +174,26 @@ html, body {
 
 .character-grid {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-direction: column; /* Stack items vertically */
+    align-items: center; /* Center items horizontally */
     gap: 15px;
     margin-bottom: 30px;
-    max-width: 350px;
-    width: 90%;
-    padding: 0 15px;
+    max-width: 350px; /* Limit grid width */
+    width: 90%; /* Occupy most of the width */
+    padding: 0 15px; /* Add some padding */
     box-sizing: border-box;
 }
 
 .character-slot {
-    background: var(--golden-wheat-primary);
-    border-radius: 12px;
-    padding: 18px 24px;
+    background: rgba(0,0,0,0.5); border-radius: 12px; /* Smoother corners */
+    padding: 18px 24px; /* More generous padding */
     display: flex;
     align-items: center;
     width: 100%;
     color: var(--charcoal-secondary);
     font-weight: 400;
-    font-size: clamp(1em, 4vw, 1.1em);
-    box-shadow: 0 2px 8px rgba(5, 66, 57, 0.15);
+    font-size: clamp(1em, 4vw, 1.1em); /* Responsive font size */
+    box-shadow: 0 2px 8px rgba(5, 66, 57, 0.15); /* Subtle shadow */
     transition: all 0.3s ease;
     text-align: left;
     cursor: default;
@@ -164,34 +203,34 @@ html, body {
 .character-slot.available {
     background: var(--forest-primary);
     cursor: pointer;
-    border: 2px solid var(--golden-wheat-secondary);
+    border: 2px solid var(--golden-wheat-secondary); /* Stronger border for available */
     box-shadow: 0 4px 12px rgba(5, 66, 57, 0.25);
-    color: var(--golden-wheat-primary);
+    color: var(--golden-wheat-primary); /* Inverted text for available */
 }
 
 .character-slot.available:hover,
 .character-slot.selected {
     transform: translateY(-3px);
-    box-shadow: 0 6px 16px rgba(185, 167, 121, 0.3);
+    box-shadow: 0 6px 16px rgba(185, 167, 121, 0.3); /* Golden wheat shadow on hover/selected */
     background: var(--golden-wheat-secondary);
-    border: 2px solid var(--forest-secondary);
-    color: var(--forest-secondary);
+    border: 2px solid var(--forest-secondary); /* Darker border on hover/selected */
+    color: var(--forest-secondary); /* Darker text on hover/selected */
 }
 
 .character-slot.grayed-out {
-    background: #988561;
+    background: #988561; /* Golden wheat dark for grayed out */
     opacity: 0.8;
-    border: 1px solid #3d3a3b;
-    color: #edebe0;
-    position: relative;
+    border: 1px solid #3d3a3b; /* Charcoal secondary border */
+    color: #edebe0; /* Golden wheat primary text for grayed out */
+    position: relative; /* For the X mark */
 }
 
 .character-slot.grayed-out::after {
-    content: '✗';
+    content: '✗'; /* X mark for unavailable */
     position: absolute;
     top: 8px;
     right: 12px;
-    color: #CE1126;
+    color: #CE1126; /* Revolutionary red for X */
     font-size: 1.8em;
     font-weight: bold;
     text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
@@ -200,11 +239,11 @@ html, body {
 .character-slot img {
     width: 55px;
     height: 55px;
-    border-radius: 8px;
+    border-radius: 8px; /* Slightly less rounded img */
     border: 2px solid var(--golden-wheat-secondary);
     margin-right: 15px;
     flex-shrink: 0;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Shadow for images */
 }
 
 .character-slot.grayed-out img {
@@ -218,18 +257,18 @@ html, body {
 }
 
 #start-game-btn {
-    padding: 16px 40px;
-    font-size: clamp(1.2em, 5vw, 1.4em);
+    padding: 16px 40px; /* Larger padding */
+    font-size: clamp(1.2em, 5vw, 1.4em); /* Responsive font size */
     background: var(--golden-wheat-secondary);
     color: var(--forest-secondary);
     border: 2px solid var(--forest-secondary);
-    border-radius: 8px;
+    border-radius: 8px; /* Less rounded corners */
     cursor: pointer;
     font-weight: 500;
     box-shadow: 0 4px 12px rgba(5, 66, 57, 0.2);
     transition: all 0.3s ease;
     text-shadow: none;
-    font-family: inherit;
+    font-family: inherit; /* Inherit font from body */
 }
 
 #start-game-btn:hover {
@@ -240,7 +279,7 @@ html, body {
 }
 
 .coming-soon-text {
-    font-size: clamp(0.9em, 3.5vw, 1em);
+    font-size: clamp(0.9em, 3.5vw, 1em); /* Responsive font size */
     margin-top: 20px;
     color: var(--charcoal-secondary);
     opacity: 0.8;
@@ -250,33 +289,33 @@ html, body {
 /* UI Elements - Elegant & Clean */
 #score {
     position: absolute;
-    top: 24px;
+    top: 24px; /* Adjusted top position */
     left: 50%;
     transform: translateX(-50%);
     background: var(--ui-score-bg);
     color: var(--ui-text-dark);
-    padding: 12px 24px;
+    padding: 12px 24px; /* Adjusted padding */
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: 6px; /* Less rounded */
     font-size: 16px;
     box-shadow: 0 2px 8px rgba(5, 66, 57, 0.15);
     transition: all 0.5s ease;
-    border: 1px solid var(--forest-secondary);
+    border: 1px solid var(--forest-secondary); /* Added border */
     backdrop-filter: none;
     text-shadow: none;
-    font-family: 'Georgia', serif;
+    font-family: 'Georgia', serif; /* Custom font for score */
 }
 
 .action-button {
     position: absolute;
-    bottom: 32px;
-    width: 72px;
+    bottom: 32px; /* Adjusted bottom position */
+    width: 72px; /* Slightly smaller buttons */
     height: 72px;
     color: var(--ui-text-main);
     background: var(--ui-button-bg);
     border: 2px solid var(--button-border-color);
-    border-radius: 12px;
-    font-size: 16px;
+    border-radius: 12px; /* Less rounded corners */
+    font-size: 16px; /* Smaller font for buttons */
     font-weight: 500;
     cursor: pointer;
     z-index: 100;
@@ -288,7 +327,7 @@ html, body {
 }
 
 .action-button:active {
-    transform: scale(0.95);
+    transform: scale(0.95); /* Smaller scale on active */
     box-shadow: 0 2px 6px rgba(5, 66, 57, 0.3);
 }
 
@@ -307,15 +346,15 @@ html, body {
     left: 24px;
 }
 
-#gameOver-content {
+#gameOver-content { /* Content wrapper for dialog inside #gameOver */
     background: var(--ui-gameover-bg);
     color: var(--ui-text-main);
-    padding: 32px;
-    border-radius: 12px;
-    width: 280px;
+    padding: 32px; /* Adjusted padding */
+    border-radius: 12px; /* Less rounded corners */
+    width: 280px; /* Adjusted width */
     text-align: center;
     box-shadow: 0 8px 24px rgba(5, 66, 57, 0.3);
-    border: 2px solid var(--golden-wheat-secondary);
+    border: 2px solid var(--golden-wheat-secondary); /* Added border */
     backdrop-filter: none;
 }
 
@@ -326,18 +365,18 @@ html, body {
     transition: color 0.5s ease;
     text-shadow: none;
     font-weight: 300;
-    font-family: 'Georgia', serif;
+    font-family: 'Georgia', serif; /* Custom font for game over title */
 }
 
 #restartBtn {
-    padding: 14px 28px;
+    padding: 14px 28px; /* Adjusted padding */
     font-size: 16px;
     background: var(--golden-wheat-secondary);
     color: var(--forest-secondary);
-    border: 2px solid var(--forest-secondary);
-    border-radius: 8px;
+    border: 2px solid var(--forest-secondary); /* Added border */
+    border-radius: 8px; /* Less rounded corners */
     cursor: pointer;
-    margin-top: 20px;
+    margin-top: 20px; /* Adjusted margin */
     font-weight: 500;
     transition: all 0.3s ease;
     text-shadow: none;
@@ -352,9 +391,9 @@ html, body {
 canvas {
     display: block;
     border: 2px solid var(--canvas-border-color);
-    border-radius: 8px;
+    border-radius: 8px; /* Less rounded corners */
     box-sizing: border-box;
-    box-shadow: 0 4px 16px rgba(5, 66, 57, 0.2);
+    box-shadow: 0 4px 16px rgba(5, 66, 57, 0.2); /* Added shadow */
 }
 
 /* Animations */
@@ -378,25 +417,59 @@ canvas {
     animation: bounce 1s;
 }
 
-/* Responsive Design */
-@media (max-height: 600px) {
+/* Responsive Design (adjust as needed for specific devices) */
+@media (max-height: 600px) { /* For shorter landscape screens */
     #characterSelectScreen {
-        padding-top: 15px;
+        padding-top: 15px; /* Less top padding */
+    }
+    #characterSelectScreen h1 {
+        font-size: 2em;
+    }
+    #characterSelectScreen h2 {
+        font-size: 1.3em;
+        margin-bottom: 15px;
     }
     .character-grid {
-        gap: 10px;
-        margin-bottom: 20px;
+        gap: 8px;
+        margin-bottom: 15px;
+    }
+    .character-slot {
+        padding: 10px 15px;
+        font-size: 0.9em;
+    }
+    .character-slot img {
+        width: 45px;
+        height: 45px;
+    }
+    #start-game-btn {
+        padding: 10px 25px;
+        font-size: 1.1em;
+    }
+    .coming-soon-text {
+        font-size: 0.8em;
+        margin-top: 10px;
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 480px) { /* For narrower screens in portrait (if not landscape) */
     .action-button {
-        width: 70px;
-        height: 70px;
-        font-size: 16px;
+        width: 60px;
+        height: 60px;
+        font-size: 14px;
     }
     #score {
-        font-size: 16px;
+        font-size: 14px;
+        padding: 8px 16px;
+    }
+    #gameOver-content {
+        width: 240px;
+        padding: 20px;
+    }
+    #gameOver h2 {
+        font-size: 1.8em;
+    }
+    #restartBtn {
         padding: 10px 20px;
+        font-size: 14px;
     }
 }
