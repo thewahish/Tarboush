@@ -142,6 +142,7 @@ class Game {
         if (!this.ctx) throw new Error("Failed to get 2D rendering context for canvas.");
 
         // --- 3. Get all relevant UI element references ---
+        // These must be retrieved before updateUIVisibility is called
         this.scoreDisplay = document.getElementById('score');
         if (!this.scoreDisplay) throw new Error("scoreDisplay element not found!");
         this.finalScoreDisplay = document.getElementById('finalScore');
@@ -155,7 +156,7 @@ class Game {
         this.gameContainer = document.querySelector('.game-container');
         if (!this.gameContainer) throw new Error("Game container element not found!");
         this.uiContainer = document.getElementById('ui-container');
-        if (!this.uiContainer) throw new Error("UI container element not found!");
+        if (!this.uiContainer) throw new Error("uiContainer element not found!");
         this.jumpButton = document.getElementById('jumpButton');
         if (!this.jumpButton) throw new Error("jumpButton element not found!");
         this.duckButton = document.getElementById('duckButton');
@@ -440,17 +441,16 @@ class Game {
                 return; // Exit loop immediately after game over
             }
 
-            // Remove off-screen obstacles
             if (obs.x + obs.width < 0) {
                 this.obstacles.splice(i, 1);
             }
         }
 
-        // Spawn next obstacle if needed
+        // Spawn next obstacle only if enough distance passed or no obstacles
         if (this.obstacles.length === 0 || 
             (this.canvas.width - (this.obstacles.length > 0 ? this.obstacles[this.obstacles.length - 1].x : this.canvas.width)) >= this.distanceToNextSpawn) {
             this.spawnObstacle();
-            this.setNextSpawnDistance(); // Recalculate distance for next spawn
+            this.setNextSpawnDistance(); // Recalculate next spawn distance
         }
     }
 
@@ -474,15 +474,15 @@ class Game {
     }
 
     createExplosionParticles(x, y) {
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < 15; i++) { // More particles
             this.particles.push({
                 x: x + (Math.random() - 0.5) * 10,
                 y: y + (Math.random() - 0.5) * 10,
-                vx: (Math.random() - 0.5) * 10,
-                vy: (Math.random() - 0.5) * 10 - 5,
-                life: 60,
+                vx: (Math.random() - 0.5) * 10, // Stronger initial velocity
+                vy: (Math.random() - 0.5) * 10 - 5, // Upward bias
+                life: 60, // Longer life
                 color: ['#FF4500', '#FFD700', '#FF6347', this._getColor('golden-wheat-secondary'), this._getColor('golden-wheat-primary')][Math.floor(Math.random() * 5)], // Using theme colors
-                size: 2 + Math.random() * 3
+                size: 2 + Math.random() * 3 // Varied size
             });
         }
     }
@@ -519,7 +519,7 @@ class Game {
 
     update() {
         // Player animation
-        const bodyHeight = this.player.isDucking ? this.player.duckHitbox.height : this.player.runHitbox.height; // Use hitbox height for body height calculation
+        const bodyHeight = this.player.isDucking ? this.player.duckHitbox.height : this.player.runHitbox.height; // Dynamic body height for drawing
         this.player.animFrame = (this.player.animFrame + this.player.animSpeed) % 4; // Ensure animFrame loops 0-3
 
         // Player physics
@@ -548,6 +548,8 @@ class Game {
         if (!this.player.grounded && this.player.isDucking) {
             // Player can't duck in air, so stop ducking state
             this.player.isDucking = false;
+            // Optionally add a slight downward boost if trying to duck in air for faster descent
+            // this.player.velY += 5;
         }
 
         // Update clouds
@@ -635,7 +637,7 @@ class Game {
 
         // Body (thobe)
         this.ctx.fillStyle = colors.playerBody;
-        this.ctx.fillRect(p.x + 5, p.y + 20, p.width - 10, bodyHeight - 20 - (p.isDucking ? 10 : 0));
+        this.ctx.fillRect(p.x + 5, p.y + 20, p.width - 10, bodyHeight - 20 - (p.isDucking ? 10 : 0)); // Shorten body when ducking
 
         // Head/face
         this.ctx.fillStyle = colors.playerSkin;
@@ -645,8 +647,10 @@ class Game {
 
         // Tarboush
         this.ctx.fillStyle = colors.playerTarboush;
+        
         // Tarboush base
         this.ctx.fillRect(p.x + p.width / 2 - 10, p.y - 5, 20, 15);
+        
         // Tarboush top part
         this.ctx.beginPath();
         this.ctx.moveTo(p.x + p.width / 2 - 8, p.y - 5);
@@ -655,6 +659,7 @@ class Game {
         this.ctx.lineTo(p.x + p.width / 2 - 6, p.y - 15);
         this.ctx.closePath();
         this.ctx.fill();
+
         // Tarboush tassel
         this.ctx.fillStyle = '#FFD700'; // Gold color for tassel
         this.ctx.beginPath();
@@ -772,6 +777,36 @@ class Game {
         this.ctx.restore();
     }
 }
+
+// --- NEW: Konami Code Debugger Toggle ---
+// Keyboard sequence: Up, Up, Down, Down, Left, Right, Left, Right, B, A
+const konamiCode = [
+    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+    'KeyB', 'KeyA'
+];
+let konamiCodePosition = 0;
+
+document.addEventListener('keydown', (e) => {
+    // Check if the current key matches the next key in the Konami Code sequence
+    if (e.code === konamiCode[konamiCodePosition]) {
+        konamiCodePosition++;
+        // If the entire sequence is matched
+        if (konamiCodePosition === konamiCode.length) {
+            konamiCodePosition = 0; // Reset for next time
+            const debuggerDisplay = document.getElementById('debuggerDisplay');
+            if (debuggerDisplay) {
+                // Toggle debugger visibility
+                debuggerDisplay.style.display = debuggerDisplay.style.display === 'flex' ? 'none' : 'flex';
+                // Optionally, log to console
+                console.log("Konami Code activated! Debugger toggled.");
+            }
+        }
+    } else {
+        konamiCodePosition = 0; // Reset if the sequence is broken
+    }
+});
+
 
 // Initialize game when page loads
 window.addEventListener('load', () => {
