@@ -490,7 +490,7 @@ class Game {
               vy: (Math.random() - 0.5) * 10 - 5,
               life: 60,
               color: ['#FF4500', '#FFD700', '#FF6347', this._getColor('golden-wheat-secondary'), this._getColor('golden-wheat-primary')][Math.floor(Math.random() * 5)], // Using theme colors
-              size: 2 + Math.random() * 3
+              size: 2 + Math.random() * 3 // Varied size
           });
       }
   }
