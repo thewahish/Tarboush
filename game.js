@@ -4,6 +4,7 @@ class Game {
         this.debuggerDisplay = document.getElementById('debuggerDisplay');
         if (!this.debuggerDisplay) {
             console.error("CRITICAL: Debugger display element #debuggerDisplay not found!");
+            // If debugger isn't found, we can't update it, but game might continue.
         }
         this.updateDebugger("Initializing Game Class...");
 
@@ -33,8 +34,8 @@ class Game {
             this.player = {
                 x: 100, y: 0, width: 40, height: 60, // player width/height for basic drawing
                 velY: 0, jumping: false, grounded: true, isDucking: false,
-                runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 },
-                duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 }
+                runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 }, // Relative to player.x, player.y
+                duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 } // Relative to player.x, player.y
             };
 
             this.isNightMode = false;
@@ -71,7 +72,7 @@ class Game {
             if (!this.ctx) throw new Error("Failed to get 2D rendering context for canvas.");
 
             // --- 3. Get all relevant UI element references ---
-            this.scoreDisplay = document.getElementById('score');
+            this.scoreDisplay = document.getElementById('score'); // The div containing the current score span
             this.currentScoreDisplay = document.getElementById('currentScore'); // Specific span for current score
             if (!this.currentScoreDisplay) throw new Error("currentScoreDisplay element not found!");
             this.finalScoreDisplay = document.getElementById('finalScore');
@@ -106,13 +107,13 @@ class Game {
             
             // Define obstacle types with their dimensions and a simple drawing method
             this.obstacleDefinitions = [
-                { type: 'single_cactus', minSpeed: 0, width: 20, height: 40, draw: this._drawCactus.bind(this) },
-                { type: 'single_rock', minSpeed: 0, width: 30, height: 20, draw: this._drawRock.bind(this) },
-                { type: 'spiky_bush', minSpeed: 3, width: 40, height: 25, draw: this._drawSpikyBush.bind(this) },
-                { type: 'high_bird', minSpeed: 4, width: 50, height: 30, yOffset: 60, draw: this._drawBird.bind(this) }, // yOffset from ground
-                { type: 'double_rock', minSpeed: 5, width: 60, height: 20, draw: this._drawRock.bind(this) }, // Can adjust draw for double
-                { type: 'swooping_bird', minSpeed: 6, width: 50, height: 30, yOffset: 20, draw: this._drawBird.bind(this) }, // yOffset from ground
-                { type: 'low_missile', minSpeed: 7, width: 70, height: 20, yOffset: 10, draw: this._drawMissile.bind(this) } // yOffset from ground
+                { type: 'single_cactus', minSpeed: 0, width: 20, height: 40, hitbox: {x_offset: 0, y_offset: 0, width: 20, height: 40}, draw: this._drawCactus.bind(this) },
+                { type: 'single_rock', minSpeed: 0, width: 30, height: 20, hitbox: {x_offset: 0, y_offset: 0, width: 30, height: 20}, draw: this._drawRock.bind(this) },
+                { type: 'spiky_bush', minSpeed: 3, width: 40, height: 25, hitbox: {x_offset: 5, y_offset: 5, width: 30, height: 15}, draw: this._drawSpikyBush.bind(this) },
+                { type: 'high_bird', minSpeed: 4, width: 50, height: 30, yOffset: 60, hitbox: {x_offset: 0, y_offset: 0, width: 50, height: 30}, draw: this._drawBird.bind(this) }, // yOffset from ground
+                { type: 'double_rock', minSpeed: 5, width: 60, height: 20, hitbox: {x_offset: 0, y_offset: 0, width: 60, height: 20}, draw: this._drawRock.bind(this) }, // Can adjust draw for double
+                { type: 'swooping_bird', minSpeed: 6, width: 50, height: 30, yOffset: 20, hitbox: {x_offset: 0, y_offset: 0, width: 50, height: 30}, draw: this._drawBird.bind(this) }, // yOffset from ground
+                { type: 'low_missile', minSpeed: 7, width: 70, height: 20, yOffset: 10, hitbox: {x_offset: 0, y_offset: 0, width: 70, height: 20}, draw: this._drawMissile.bind(this) } // yOffset from ground
             ];
             // Filter patterns based on speed to ensure they appear gradually
             this.obstaclePatterns = this.obstacleDefinitions.filter(obs => obs.minSpeed <= this.speed);
@@ -228,20 +229,20 @@ class Game {
         this.uiContainer.style.display = 'none'; // Separate from .game-screen
         this.jumpButton.style.display = 'none';
         this.duckButton.style.display = 'none';
-        this.debuggerDisplay.style.display = 'none'; // Debugger hidden by default
+        this.debuggerDisplay.style.display = 'none'; // Debugger hidden by default (will be shown if appropriate state/orientation)
 
         // Show elements based on Orientation and currentGameState
         if (isLandscape) {
             if (this.currentGameState === 'playing') {
                 this.gameContainer.style.display = 'flex';
                 this.uiContainer.style.display = 'flex';
-                this.scoreDisplay.style.display = 'block';
+                this.scoreDisplay.style.display = 'block'; // Ensure score is block/flex if parent is flex
                 this.jumpButton.style.display = 'flex';
                 this.duckButton.style.display = 'flex';
                 this.debuggerDisplay.style.display = 'flex'; // Show debugger in game
             } else if (this.currentGameState === 'gameOver') {
-                this.gameContainer.style.display = 'flex';
-                this.uiContainer.style.display = 'flex';
+                this.gameContainer.style.display = 'flex'; // Keep canvas visible as background
+                this.uiContainer.style.display = 'flex'; // Score display may still be visible below debugger
                 this.scoreDisplay.style.display = 'block';
                 this.gameOverScreen.style.display = 'flex';
                 this.debuggerDisplay.style.display = 'flex'; // Show debugger on game over
@@ -250,7 +251,7 @@ class Game {
                 this.debuggerDisplay.style.display = 'flex'; // Show debugger on character select
             } else if (this.currentGameState === 'error') {
                 this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible if there's an error
-                // Optionally show a generic error screen
+                // You might also want to display a simplified error message on screen
             }
         } else { // Portrait mode
             this.orientationWarning.style.display = 'flex';
@@ -262,8 +263,8 @@ class Game {
     renderCharacterSelectScreen() {
         const characterGrid = this.characterSelectScreen.querySelector('.character-grid');
         if (!characterGrid) {
-            console.error("Character grid element not found!");
-            this.updateDebugger("Error: Character grid not found.");
+            console.error("Character grid element not found for rendering!");
+            this.updateDebugger("Error: Character grid not found for rendering.");
             return;
         }
         characterGrid.innerHTML = ''; // Clear previous slots
@@ -285,8 +286,10 @@ class Game {
                 slot.addEventListener('click', () => {
                     this.selectedCharacterId = char.id;
                     this.updateDebugger(`Selected: ${char.name}`);
+                    // Visually update selection
                     characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
                     slot.classList.add('selected');
+                    // No direct game start on character click for now, user clicks "Start Game" button
                 });
             } else {
                 slot.classList.add('grayed-out');
@@ -296,18 +299,20 @@ class Game {
 
         // The start game button now explicitly starts the game after selection
         if (this.startGameBtn) {
-            this.startGameBtn.onclick = null; // Clear previous handler to prevent double binding
-            this.startGameBtn.onclick = () => {
+            // Remove previous listener to prevent double-binding
+            this.startGameBtn.removeEventListener('click', this.startGameHandler); // Ensure handler is reference
+            this.startGameHandler = () => { // Create a new handler to bind correctly
                 if (this.currentGameState === 'characterSelect') {
                     this.startGame();
                 }
             };
+            this.startGameBtn.addEventListener('click', this.startGameHandler);
         } else {
             this.updateDebugger("Error: start-game-btn not found!");
             console.error("Error: start-game-btn not found!");
         }
 
-        this.updateUIVisibility();
+        this.updateUIVisibility(); // Ensure character select screen is visible
     }
 
     // --- Game Start/Restart ---
@@ -319,19 +324,19 @@ class Game {
         this.speed = 3;
         this.distance = 0;
         this.lastScoredDistance = 0;
-        this.nextThemeToggleScore = 500;
+        this.nextThemeToggleScore = 500; // Reset theme toggle score for new game
         this.player.y = this.groundY - this.player.height;
         this.player.velY = 0;
         this.player.grounded = true;
         this.player.isDucking = false;
         this.player.jumping = false;
         this.jumpRequested = false; // To handle jump input reliably
-        this.obstacles = [];
+        this.obstacles = []; // Clear all previous obstacles
         this.setNextSpawnDistance();
         this.updateScoreDisplay();
 
-        this.currentGameState = 'playing';
-        this.updateUIVisibility();
+        this.currentGameState = 'playing'; // Set game state to playing
+        this.updateUIVisibility(); // Adjust UI to show game elements
 
         this.updateDebugger('Game started. Good luck!');
         console.log("[startGame DEBUG] Game started. gameRunning is:", this.gameRunning);
@@ -355,7 +360,7 @@ class Game {
         if (this.score > this.bestScore) {
             this.bestScore = this.score;
             localStorage.setItem('tarboushBestScore', this.bestScore);
-            this.updateBestScoreDisplay();
+            this.updateBestScoreDisplay(); // Update the best score display immediately
         }
     }
 
@@ -388,12 +393,11 @@ class Game {
             height: obstacleDef.height,
             type: obstacleDef.type,
             draw: obstacleDef.draw,
-            // Simple hitbox for all obstacles, adjust as needed per type
-            hitbox: {
-                x_offset: 0,
-                y_offset: 0,
-                width: obstacleDef.width,
-                height: obstacleDef.height
+            hitbox: { // Use the hitbox defined in obstacleDefinition
+                x_offset: obstacleDef.hitbox.x_offset,
+                y_offset: obstacleDef.hitbox.y_offset,
+                width: obstacleDef.hitbox.width,
+                height: obstacleDef.hitbox.height
             }
         };
         this.obstacles.push(newObstacle);
@@ -418,7 +422,7 @@ class Game {
             }
         }
 
-        // Spawn new obstacle if needed
+        // Spawn new obstacle if needed (check if last obstacle is far enough or no obstacles exist)
         if (this.obstacles.length === 0 || (this.canvas.width - this.obstacles[this.obstacles.length - 1].x) >= this.distanceToNextSpawn) {
             this.spawnObstacle();
         }
@@ -451,29 +455,35 @@ class Game {
         this.gameRunning = false;
         this.currentGameState = 'gameOver';
         this.updateDebugger(`Game Over! Score: ${this.score}`);
-        this.updateScoreDisplay(); // Update final score on game over screen
+        this.updateScoreDisplay(); // Update final score and best score
         this.updateUIVisibility();
         console.log("[Game Over] Game Ended.");
     }
 
     // --- Game Loop ---
     gameLoop() {
-        if (!this.gameRunning || this.currentGameState !== 'playing') {
-            requestAnimationFrame(() => this.gameLoop()); // Keep loop alive even when paused/stopped
+        if (!this.gameRunning || (this.currentGameState !== 'playing' && this.currentGameState !== 'error')) {
+            // Keep requesting frames even when paused to re-evaluate game state
+            // If currentGameState is 'characterSelect' or 'gameOver', the loop will continue to request frames
+            // but update()/draw() won't execute until state is 'playing'.
+            requestAnimationFrame(() => this.gameLoop());
             return;
         }
-
-        try {
-            this.update();
-            this.draw();
-            requestAnimationFrame(() => this.gameLoop());
-        } catch (e) {
-            console.error("Error in gameLoop (caught by gameLoop):", e);
-            this.updateDebugger(`CRITICAL ERROR in gameLoop: ${e.message}. Loop stopped.`);
-            this.gameRunning = false;
-            this.currentGameState = 'error';
-            this.updateUIVisibility();
+        // Only call update/draw if playing
+        if (this.currentGameState === 'playing') {
+            try {
+                this.update();
+                this.draw();
+            } catch (e) {
+                console.error("Error in gameLoop (caught by gameLoop):", e);
+                this.updateDebugger(`CRITICAL ERROR in gameLoop: ${e.message}. Loop stopped.`);
+                this.gameRunning = false;
+                this.currentGameState = 'error';
+                this.updateUIVisibility();
+                return; // Stop requesting further frames on critical error
+            }
         }
+        requestAnimationFrame(() => this.gameLoop()); // Request next frame for next cycle
     }
 
     // --- Update Game State ---
@@ -493,16 +503,16 @@ class Game {
         }
         // Handle jump request if not already jumping and on ground
         if (this.jumpRequested && this.player.grounded) {
-            this.player.velY = -10; // Jump strength
+            this.player.velY = -10; // Jump strength (adjust as needed)
             this.player.jumping = true;
             this.player.grounded = false;
-            this.jumpRequested = false;
+            this.jumpRequested = false; // Reset flag
             this.player.isDucking = false; // Player can't duck while jumping
         }
 
         // Ensure player cannot duck while in air
         if (!this.player.grounded && this.player.isDucking) {
-             this.player.isDucking = false;
+             this.player.isDucking = false; // Force stop ducking if player leaves ground
         }
 
 
@@ -566,7 +576,7 @@ class Game {
         // Draw player
         this._drawPlayer();
 
-        // Optional: Draw hitboxes for debugging
+        // Optional: Draw hitboxes for debugging (uncomment to activate)
         // this._drawHitboxes();
     }
 
@@ -577,44 +587,48 @@ class Game {
 
         this.ctx.save(); // Save current canvas state
 
-        // Base player body
+        // Main body (adjusted for ducking)
+        let bodyY = p.y;
+        let bodyHeight = p.height;
+        if (p.isDucking) {
+            bodyY = p.y + p.height / 2;
+            bodyHeight = p.height / 2;
+        }
         this.ctx.fillStyle = currentColors.playerBody;
-        this.ctx.fillRect(p.x, p.y, p.width, p.height);
+        this.ctx.fillRect(p.x, bodyY, p.width, bodyHeight);
 
-        // Tarboush (hat)
+        // Tarboush (hat) - adjust position based on ducking
         this.ctx.fillStyle = currentColors.playerTarboush;
+        const tarboushTopY = p.isDucking ? p.y + p.height / 2 - p.height * 0.2 : p.y - p.height * 0.2;
+        const tarboushHeight = p.height * 0.2; // Base height of tarboush rectangle part
+        const tarboushPeakHeight = p.height * 0.15; // Height of the peak part
+        const tarboushPeakWidth = p.width * 0.2; // Width of the peak part
+
         this.ctx.beginPath();
-        this.ctx.moveTo(p.x + p.width * 0.2, p.y);
-        this.ctx.lineTo(p.x + p.width * 0.8, p.y);
-        this.ctx.lineTo(p.x + p.width * 0.9, p.y - p.height * 0.2);
-        this.ctx.lineTo(p.x + p.width * 0.1, p.y - p.height * 0.2);
+        this.ctx.moveTo(p.x + p.width * 0.2, tarboushTopY + tarboushHeight); // Bottom-left corner
+        this.ctx.lineTo(p.x + p.width * 0.8, tarboushTopY + tarboushHeight); // Bottom-right corner
+        this.ctx.lineTo(p.x + p.width * 0.9, tarboushTopY); // Top-right (slant)
+        this.ctx.lineTo(p.x + p.width * 0.1, tarboushTopY); // Top-left (slant)
         this.ctx.closePath();
         this.ctx.fill();
-        this.ctx.fillRect(p.x + p.width * 0.4, p.y - p.height * 0.35, p.width * 0.2, p.height * 0.15); // Top of tarboush
 
-        // Player face/skin
+        // Top cap of the tarboush (rectangle on top of the slanted part)
+        this.ctx.fillRect(p.x + p.width * 0.4, tarboushTopY - tarboushPeakHeight, tarboushPeakWidth, tarboushPeakHeight);
+
+
+        // Player face/skin - adjust position based on ducking
+        const faceY = p.isDucking ? p.y + p.height / 2 + p.height * 0.05 : p.y + p.height * 0.15;
+        const faceHeight = p.isDucking ? p.height * 0.2 : p.height * 0.4;
         this.ctx.fillStyle = currentColors.playerSkin;
-        this.ctx.fillRect(p.x + p.width * 0.15, p.y + p.height * 0.15, p.width * 0.7, p.height * 0.4);
+        this.ctx.fillRect(p.x + p.width * 0.15, faceY, p.width * 0.7, faceHeight);
 
-        // Eyes (simple dots)
+        // Eyes (simple dots) - adjust position based on ducking
+        const eyeY = p.isDucking ? p.y + p.height / 2 + p.height * 0.1 : p.y + p.height * 0.25;
         this.ctx.fillStyle = currentColors.playerDetail;
         this.ctx.beginPath();
-        this.ctx.arc(p.x + p.width * 0.35, p.y + p.height * 0.25, 2, 0, Math.PI * 2);
-        this.ctx.arc(p.x + p.width * 0.65, p.y + p.height * 0.25, 2, 0, Math.PI * 2);
+        this.ctx.arc(p.x + p.width * 0.35, eyeY, 2, 0, Math.PI * 2);
+        this.ctx.arc(p.x + p.width * 0.65, eyeY, 2, 0, Math.PI * 2);
         this.ctx.fill();
-
-        // Ducking specific adjustments (visual)
-        if (p.isDucking) {
-            // Re-draw a shorter body, or adjust existing for ducking appearance
-            // For simplicity, just make the main body shorter and lower
-            this.ctx.fillStyle = currentColors.playerBody;
-            this.ctx.fillRect(p.x, p.y + p.height / 2, p.width, p.height / 2);
-            // Re-position tarboush/face elements for ducking
-            this.ctx.fillStyle = currentColors.playerTarboush;
-            this.ctx.fillRect(p.x + p.width * 0.2, p.y + p.height / 2 - p.height * 0.2, p.width * 0.6, p.height * 0.2); // Lowered hat
-            this.ctx.fillStyle = currentColors.playerSkin;
-            this.ctx.fillRect(p.x + p.width * 0.15, p.y + p.height / 2 + p.height * 0.05, p.width * 0.7, p.height * 0.2); // Lowered face
-        }
 
         this.ctx.restore(); // Restore canvas state
     }
