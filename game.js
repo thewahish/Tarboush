@@ -1,291 +1,242 @@
 class Game {
     constructor() {
-        // --- Debugger Setup - INITIALIZE FIRST ---
-        this.debuggerDisplay = document.getElementById('debuggerDisplay');
-        if (!this.debuggerDisplay) {
-            console.error("CRITICAL: Debugger display element #debuggerDisplay not found!");
-            // This error will likely be caught by the global error handler.
-            // No direct updateDebugger here if element truly not found.
-        } else {
-            this.updateDebugger("Initializing Game Class...");
-        }
+        this.gameRunning = false;
+        this.score = 0;
+        this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
+        this.speed = 4;
+        this.distance = 0;
+        this.lastScoredDistance = 0;
+        this.nextThemeToggleScore = 500;
 
-
-        // Add a global error handler to catch any uncaught errors
-        window.onerror = (message, source, lineno, colno, error) => {
-            const errorMsg = `Global Error: ${message} (Line: ${lineno})`;
-            this.updateDebugger(errorMsg);
-            console.error("Global JavaScript Error:", errorMsg, error);
-            this.gameRunning = false; // Halt the game if a critical global error occurs
-            this.currentGameState = 'error'; // Set a specific state for error
-            this.updateUIVisibility(); // Ensure UI reflects halt
-            return true; // Prevent default browser error handling
+        // Enhanced player with animation states
+        this.player = {
+            x: 120, y: 0, width: 50, height: 70,
+            velY: 0, jumping: false, grounded: true, isDucking: false,
+            animFrame: 0, animSpeed: 0.2,
+            runHitbox: { x_offset: 8, y_offset: 8, width: 34, height: 62 },
+            duckHitbox: { x_offset: 8, y_offset: 35, width: 34, height: 35 }
         };
 
-        console.log("[Constructor DEBUG] Starting Game constructor.");
+        this.isNightMode = false;
+        this.particles = [];
+        
+        // Official Syrian Identity Color Themes
+        this.themeColors = {
+            day: {
+                ground: '#b9a779', groundShadow: '#988561',
+                cloud: 'rgba(237, 235, 224, 0.9)', 
+                playerTarboush: '#054239', // Forest secondary
+                playerBody: '#edebe0', playerSkin: '#b9a779', playerDetail: '#3d3a3b',
+                playerMustache: '#988561',
+                obstacleGreen: '#42B177', obstacleBlack: '#3d3a3b', obstacleGrey: '#988561',
+                obstacleMissileFlame: '#b9a779',
+                sky: '#42B177', // Forest primary
+                coin: '#b9a779'
+            },
+            night: {
+                ground: '#6B2F2A', groundShadow: '#4A1F1E',
+                cloud: 'rgba(237, 235, 224, 0.4)',
+                playerTarboush: '#002623', // Forest dark
+                playerBody: '#edebe0', playerSkin: '#b9a779', playerDetail: '#edebe0',
+                playerMustache: '#988561',
+                obstacleGreen: '#054239', obstacleBlack: '#3d3a3b', obstacleGrey: '#6B2F2A',
+                obstacleMissileFlame: '#988561',
+                sky: '#054239', // Forest secondary
+                coin: '#988561'
+            }
+        };
 
-        try {
-            // --- 1. Basic property initialization ---
-            this.gameRunning = false; // Game starts as not running, waiting for character select
-            this.score = 0;
-            this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
-            this.speed = 3;
-            this.distance = 0;
-            this.lastScoredDistance = 0;
-            this.nextThemeToggleScore = 500; // Day/Night toggle every 500 points
+        this.characters = [
+            { 
+                id: 'shami_abu_tarboush', 
+                name: 'شامي أبو طربوش', 
+                available: true, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#42B177" rx="8"/>
+                        <circle cx="30" cy="38" r="16" fill="#b9a779"/>
+                        <rect x="18" y="8" width="24" height="16" fill="#054239" rx="2"/>
+                        <rect x="27" y="4" width="6" height="6" fill="#054239"/>
+                        <circle cx="26" cy="35" r="1.5" fill="#3d3a3b"/>
+                        <circle cx="34" cy="35" r="1.5" fill="#3d3a3b"/>
+                        <rect x="24" y="40" width="12" height="2" fill="#988561" rx="1"/>
+                        <rect x="22" y="48" width="16" height="12" fill="#edebe0"/>
+                        <circle cx="44" cy="10" r="2" fill="#988561"/>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'fatom_hays_bays', 
+                name: 'فطوم حيص بيص', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#988561" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#edebe0">ف</text>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'zulfiqar', 
+                name: 'زولفيقار', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#3d3a3b" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#edebe0">ز</text>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'bakri_abu_halab', 
+                name: 'بكري أبو حلب', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#b9a779" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#054239">ب</text>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'warni_warni', 
+                name: 'ورني ورني', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#161616" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#edebe0">و</text>
+                    </svg>
+                `)
+            }
+        ];
+        this.selectedCharacterId = 'shami_abu_tarboush';
 
-            this.player = {
-                x: 100, y: 0, width: 40, height: 60, // player width/height for basic drawing
-                velY: 0, jumping: false, grounded: true, isDucking: false,
-                runHitbox: { x_offset: 5, y_offset: 5, width: 30, height: 55 }, // Relative to player.x, player.y
-                duckHitbox: { x_offset: 5, y_offset: 25, width: 30, height: 35 } // Relative to player.x, player.y
-            };
-
-            this.isNightMode = false;
-            this.themeColors = {
-                day: {
-                    ground: '#A0522D', cloud: 'rgba(255,255,255,0.8)', playerTarboush: '#CE1126',
-                    playerBody: '#FFFFFF', playerSkin: '#FDBCB4', playerDetail: '#000000',
-                    obstacleGreen: '#007A3D', obstacleBlack: '#000000', obstacleGrey: '#696969',
-                    obstacleMissileFlame: '#FF4500',
-                },
-                night: {
-                    ground: '#5A2C10', cloud: 'rgba(200,200,200,0.2)', playerTarboush: '#990B1E',
-                    playerBody: '#BBBBBB', playerSkin: '#A17B74', playerDetail: '#EEEEEE',
-                    obstacleGreen: '#004D27', obstacleBlack: '#AAAAAA', obstacleGrey: '#333333',
-                    obstacleMissileFlame: '#E68A00',
-                }
-            };
-
-            this.characters = [
-                { id: 'shami_abu_tarboush', name: 'شامي أبو طربوش', available: true, image: 'https://via.placeholder.com/60/CE1126/FFFFFF?text=ش' },
-                { id: 'fatom_hays_bays', name: 'فطوم حيص بيص', available: false, image: 'https://via.placeholder.com/60/007A3D/FFFFFF?text=ف' },
-                { id: 'zulfiqar', name: 'زولفيقار', available: false, image: 'https://via.placeholder.com/60/36454F/FFFFFF?text=ز' },
-                { id: 'bakri_abu_halab', name: 'بكري أبو حلب', available: false, image: 'https://via.placeholder.com/60/A0522D/FFFFFF?text=ب' },
-                { id: 'warni_warni', name: 'ورني ورني', available: false, image: 'https://via.placeholder.com/60/000000/FFFFFF?text=و' }
-            ];
-            this.selectedCharacterId = 'shami_abu_tarboush'; // Default selected character
-
-            // --- 2. Get Canvas and Context ---
-            this.canvas = document.getElementById('gameCanvas');
-            console.log("[Constructor DEBUG] Canvas element:", this.canvas);
-            if (!this.canvas) throw new Error("Canvas element #gameCanvas not found!");
-            this.ctx = this.canvas.getContext('2d');
-            console.log("[Constructor DEBUG] Canvas context:", this.ctx);
-            if (!this.ctx) throw new Error("Failed to get 2D rendering context for canvas.");
-
-            // --- 3. Get all relevant UI element references ---
-            this.scoreDisplay = document.getElementById('score'); // The div containing the current score span
-            this.currentScoreDisplay = document.getElementById('currentScore'); // Specific span for current score
-            if (!this.currentScoreDisplay) throw new Error("currentScoreDisplay element not found!");
-            this.finalScoreDisplay = document.getElementById('finalScore');
-            if (!this.finalScoreDisplay) throw new Error("finalScoreDisplay element not found!");
-            this.bestScoreDisplay = document.getElementById('bestScore');
-            if (!this.bestScoreDisplay) throw new Error("bestScoreDisplay element not found!");
-            this.gameOverScreen = document.getElementById('gameOver');
-            if (!this.gameOverScreen) throw new Error("gameOverScreen element not found!");
-            this.characterSelectScreen = document.getElementById('characterSelectScreen');
-            if (!this.characterSelectScreen) throw new Error("characterSelectScreen element not found!");
-            this.gameContainer = document.querySelector('.game-container');
-            if (!this.gameContainer) throw new Error("Game container element not found!");
-            this.uiContainer = document.getElementById('ui-container');
-            if (!this.uiContainer) throw new Error("UI container element not found!");
-            this.jumpButton = document.getElementById('jumpButton');
-            if (!this.jumpButton) throw new Error("jumpButton element not found!");
-            this.duckButton = document.getElementById('duckButton');
-            if (!this.duckButton) throw new Error("duckButton element not found!");
-            this.restartBtn = document.getElementById('restartBtn');
-            if (!this.restartBtn) throw new Error("restartBtn element not found!");
-            this.startGameBtn = document.getElementById('start-game-btn');
-            if (!this.startGameBtn) throw new Error("start-game-btn not found!");
-            this.orientationWarning = document.getElementById('orientation-warning');
-            if (!this.orientationWarning) throw new Error("orientation-warning element not found!");
-
-            // --- 4. Game state dependent setup (uses elements gathered above) ---
-            this.setupCanvas(); // Sets canvas dimensions and groundY
-            this.obstacles = [];
-            this.distanceToNextSpawn = 0; // Distance to wait before spawning the next obstacle
-            this.obstacleSpawnMin = 500; // Minimum distance for next obstacle
-            this.obstacleSpawnMax = 1500; // Maximum distance for next obstacle
-            
-            // Define obstacle types with their dimensions and a simple drawing method
-            this.obstacleDefinitions = [
-                { type: 'single_cactus', minSpeed: 0, width: 20, height: 40, hitbox: {x_offset: 0, y_offset: 0, width: 20, height: 40}, draw: this._drawCactus.bind(this) },
-                { type: 'single_rock', minSpeed: 0, width: 30, height: 20, hitbox: {x_offset: 0, y_offset: 0, width: 30, height: 20}, draw: this._drawRock.bind(this) },
-                { type: 'spiky_bush', minSpeed: 3, width: 40, height: 25, hitbox: {x_offset: 5, y_offset: 5, width: 30, height: 15}, draw: this._drawSpikyBush.bind(this) },
-                { type: 'high_bird', minSpeed: 4, width: 50, height: 30, yOffset: 60, hitbox: {x_offset: 0, y_offset: 0, width: 50, height: 30}, draw: this._drawBird.bind(this) }, // yOffset from ground
-                { type: 'double_rock', minSpeed: 5, width: 60, height: 20, hitbox: {x_offset: 0, y_offset: 0, width: 60, height: 20}, draw: this._drawRock.bind(this) }, // Can adjust draw for double
-                { type: 'swooping_bird', minSpeed: 6, width: 50, height: 30, yOffset: 20, hitbox: {x_offset: 0, y_offset: 0, width: 50, height: 30}, draw: this._drawBird.bind(this) }, // yOffset from ground
-                { type: 'low_missile', minSpeed: 7, width: 70, height: 20, yOffset: 10, hitbox: {x_offset: 0, y_offset: 0, width: 70, height: 20}, draw: this._drawMissile.bind(this) } // yOffset from ground
-            ];
-            // Filter patterns based on speed to ensure they appear gradually
-            this.obstaclePatterns = this.obstacleDefinitions.filter(obs => obs.minSpeed <= this.speed);
-
-            this.clouds = this.createClouds();
-
-            // --- 5. Bind events (now all elements are available) ---
-            this.bindEvents(); // Sets up event listeners
-
-            // --- 6. Initial UI state and rendering ---
-            this.updateBestScoreDisplay();
-            this.setNextSpawnDistance(); // Sets distance for first obstacle spawn
-            this.currentGameState = 'characterSelect'; // Game starts in character select state
-            this.updateUIVisibility(); // Adjusts UI based on initial state
-            this.renderCharacterSelectScreen(); // Populates character select UI
-
-            console.log("[Constructor DEBUG] Game init success. currentGameState:", this.currentGameState);
-            this.updateDebugger(`Game init success. State: ${this.currentGameState}`);
-
-            // --- 7. Start the main game loop (it will pause/unpause based on currentGameState) ---
-            this.gameLoop();
-            console.log("[Constructor DEBUG] gameLoop() called. Constructor finishing.");
-
-        } catch (e) {
-            console.error("Error during Game initialization (caught by constructor):", e);
-            this.updateDebugger(`CRITICAL ERROR during Game init: ${e.message}. Game stopped.`);
-            this.gameRunning = false;
-            this.currentGameState = 'error';
-            this.updateUIVisibility(); // Ensure UI reflects error state
-        }
-        console.log("[Constructor DEBUG] Constructor finished. Final gameRunning state:", this.gameRunning);
+        this.init();
     }
 
-    // --- Canvas Setup ---
+    init() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.setupCanvas();
+        this.setupUI();
+        this.bindEvents();
+        
+        this.obstacles = [];
+        this.clouds = this.createClouds();
+        this.setNextSpawnDistance();
+        
+        this.currentGameState = 'characterSelect';
+        this.updateUIVisibility();
+        this.renderCharacterSelectScreen();
+        this.gameLoop();
+    }
+
     setupCanvas() {
-        const desiredAspectRatio = 2; // 2:1 width to height for a wider landscape view
-        const minHorizontalPadding = 40; // Minimum padding on left/right
-        const minVerticalPadding = 40; // Minimum padding on top/bottom
+        const desiredAspectRatio = 2.2;
+        const minPadding = 40;
+        const maxWidth = 900;
+        const maxHeight = 400;
 
-        let targetWidth = window.innerWidth - minHorizontalPadding;
-        let targetHeight = window.innerHeight - minVerticalPadding;
+        let targetWidth = Math.min(window.innerWidth - minPadding, maxWidth);
+        let targetHeight = Math.min(window.innerHeight - minPadding, maxHeight);
 
-        const baseCanvasHeight = 350; // Increased base height
-        const baseCanvasWidth = baseCanvasHeight * desiredAspectRatio; // 700 for 2:1 aspect
-
-        let scaleFactor = 1;
-        // Scale down if window is too small or cap at max desirable size
-        if (targetWidth < baseCanvasWidth) {
-            scaleFactor = targetWidth / baseCanvasWidth;
-        }
-        if (targetHeight < baseCanvasHeight) {
-            scaleFactor = Math.min(scaleFactor, targetHeight / baseCanvasHeight);
-        }
-        scaleFactor = Math.min(scaleFactor, 800 / baseCanvasWidth); // Cap at max 800px width for desktop
-
-        this.canvas.width = baseCanvasWidth * scaleFactor;
-        this.canvas.height = baseCanvasHeight * scaleFactor;
-
-        // Ensure it doesn't get ridiculously small (minimum playable size)
-        const absoluteMinWidth = 300;
-        const absoluteMinHeight = 150;
-        if (this.canvas.width < absoluteMinWidth) {
-            this.canvas.width = absoluteMinWidth;
-            this.canvas.height = this.canvas.width / desiredAspectRatio;
-        }
-        if (this.canvas.height < absoluteMinHeight) {
-            this.canvas.height = absoluteMinHeight;
-            this.canvas.width = this.canvas.height * desiredAspectRatio;
+        if (targetWidth / targetHeight > desiredAspectRatio) {
+            targetWidth = targetHeight * desiredAspectRatio;
+        } else {
+            targetHeight = targetWidth / desiredAspectRatio;
         }
 
-        this.groundY = this.canvas.height - 40; // Ground is relative to canvas height
+        this.canvas.width = Math.max(targetWidth, 400);
+        this.canvas.height = Math.max(targetHeight, 200);
+        
+        this.groundY = this.canvas.height - 60;
         this.player.y = this.groundY - this.player.height;
     }
 
-    // --- Cloud Management ---
+    setupUI() {
+        this.scoreDisplay = document.getElementById('score');
+        this.finalScoreDisplay = document.getElementById('finalScore');
+        this.bestScoreDisplay = document.getElementById('bestScore');
+        this.gameOverScreen = document.getElementById('gameOver');
+        this.characterSelectScreen = document.getElementById('characterSelectScreen');
+        this.gameContainer = document.querySelector('.game-container');
+        this.uiContainer = document.getElementById('ui-container');
+        this.jumpButton = document.getElementById('jumpButton');
+        this.duckButton = document.getElementById('duckButton');
+        this.restartBtn = document.getElementById('restartBtn');
+        this.startGameBtn = document.getElementById('start-game-btn');
+        this.orientationWarning = document.getElementById('orientation-warning');
+        
+        this.updateBestScoreDisplay();
+    }
+
     createClouds() {
         const clouds = [];
-        for (let i = 0; i < 3; i++) {
-            clouds.push({ x: Math.random() * this.canvas.width, y: 50 + Math.random() * (this.groundY / 3), w: 80 + Math.random() * 40, h: 40 + Math.random() * 20, speed: 0.5 + Math.random() * 0.3 });
+        for (let i = 0; i < 4; i++) {
+            clouds.push({
+                x: Math.random() * this.canvas.width,
+                y: 30 + Math.random() * (this.groundY / 3),
+                w: 60 + Math.random() * 40,
+                h: 25 + Math.random() * 15,
+                speed: 0.3 + Math.random() * 0.4,
+                opacity: 0.6 + Math.random() * 0.4
+            });
         }
         return clouds;
     }
 
-    // --- Theme Management ---
     _getColor(colorName) {
         const mode = this.isNightMode ? 'night' : 'day';
-        return this.themeColors[mode][colorName];
+        const color = this.themeColors[mode][colorName];
+        return color || '#42B177'; // Fallback to forest primary if color not found
     }
 
     toggleDayNight() {
         this.isNightMode = !this.isNightMode;
         document.body.classList.toggle('night-mode', this.isNightMode);
-        this.updateScoreDisplay(); // Score display color might change
-        this.draw(); // Redraw immediately to reflect theme changes
+        this.updateScoreDisplay();
     }
 
-    // --- Debugger ---
-    updateDebugger(message) {
-        // Ensure debuggerDisplay is available before trying to update it
-        if (this.debuggerDisplay) {
-            const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-            this.debuggerDisplay.textContent = `[${timestamp}] ${message}`;
-        } else {
-            console.log(`[Debugger FB - No UI]: ${message}`);
-        }
-    }
-
-    // --- UI Visibility Management ---
     updateUIVisibility() {
         const isLandscape = window.matchMedia("(orientation: landscape)").matches;
-
-        // Hide all main UI containers and screens initially
+        
         document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
-        // Ensure the debugger is also hidden by default here to prevent it from showing at wrong times
-        if (this.debuggerDisplay) { // Check if it's initialized before trying to access
-            this.debuggerDisplay.style.display = 'none';
-        }
-        this.uiContainer.style.display = 'none'; // Separate from .game-screen
         this.jumpButton.style.display = 'none';
         this.duckButton.style.display = 'none';
 
-
-        // Show elements based on Orientation and currentGameState
         if (isLandscape) {
             if (this.currentGameState === 'playing') {
                 this.gameContainer.style.display = 'flex';
                 this.uiContainer.style.display = 'flex';
-                this.scoreDisplay.style.display = 'block'; // Ensure score is block/flex if parent is flex
                 this.jumpButton.style.display = 'flex';
                 this.duckButton.style.display = 'flex';
-                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Show debugger in game
             } else if (this.currentGameState === 'gameOver') {
-                this.gameContainer.style.display = 'flex'; // Keep canvas visible as background
-                this.uiContainer.style.display = 'flex'; // Score display may still be visible below debugger
-                this.scoreDisplay.style.display = 'block';
+                this.gameContainer.style.display = 'flex';
+                this.uiContainer.style.display = 'flex';
                 this.gameOverScreen.style.display = 'flex';
-                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Show debugger on game over
             } else if (this.currentGameState === 'characterSelect') {
                 this.characterSelectScreen.style.display = 'flex';
-                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Show debugger on character select
-            } else if (this.currentGameState === 'error') {
-                // In case of a critical error, show the debugger and potentially the game container
-                if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex';
-                this.gameContainer.style.display = 'flex'; // Show canvas for context if error happened mid-game
             }
-        } else { // Portrait mode
+        } else {
             this.orientationWarning.style.display = 'flex';
-            if (this.debuggerDisplay) this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible even in portrait to show warnings
         }
     }
 
-    // --- Character Selection ---
     renderCharacterSelectScreen() {
         const characterGrid = this.characterSelectScreen.querySelector('.character-grid');
-        if (!characterGrid) {
-            console.error("Character grid element not found for rendering!");
-            this.updateDebugger("Error: Character grid not found for rendering.");
-            return;
-        }
-        characterGrid.innerHTML = ''; // Clear previous slots
+        characterGrid.innerHTML = '';
 
         this.characters.forEach(char => {
             const slot = document.createElement('div');
             slot.classList.add('character-slot');
-            slot.setAttribute('data-char-id', char.id); // Store ID for selection
+            slot.setAttribute('data-char-id', char.id);
 
-            const charImageHtml = `<img src="${char.image}" alt="${char.name}" loading="lazy">`;
-
-            slot.innerHTML = `${charImageHtml}<p>${char.name}</p>`;
+            slot.innerHTML = `
+                <img src="${char.image}" alt="${char.name}" loading="lazy">
+                <p>${char.name}</p>
+            `;
 
             if (char.available) {
                 slot.classList.add('available');
@@ -294,11 +245,8 @@ class Game {
                 }
                 slot.addEventListener('click', () => {
                     this.selectedCharacterId = char.id;
-                    this.updateDebugger(`Selected: ${char.name}`);
-                    // Visually update selection
                     characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
                     slot.classList.add('selected');
-                    // No direct game start on character click for now, user clicks "Start Game" button
                 });
             } else {
                 slot.classList.add('grayed-out');
@@ -306,58 +254,142 @@ class Game {
             characterGrid.appendChild(slot);
         });
 
-        // The start game button now explicitly starts the game after selection
-        if (this.startGameBtn) {
-            // Remove previous listener to prevent double-binding
-            // Ensure the handler is the same function reference each time
-            if (this._startGameButtonHandler) { // Check if handler exists
-                this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
-            }
-            this._startGameButtonHandler = () => { // Store handler in a property
-                if (this.currentGameState === 'characterSelect') {
-                    this.startGame();
-                }
-            };
-            this.startGameBtn.addEventListener('click', this._startGameButtonHandler);
-        } else {
-            this.updateDebugger("Error: start-game-btn not found!");
-            console.error("Error: start-game-btn not found!");
+        if (this._startGameButtonHandler) {
+            this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
         }
-
-        this.updateUIVisibility(); // Ensure character select screen is visible
+        this._startGameButtonHandler = () => {
+            if (this.currentGameState === 'characterSelect') {
+                this.startGame();
+            }
+        };
+        this.startGameBtn.addEventListener('click', this._startGameButtonHandler);
     }
 
-    // --- Game Start/Restart ---
     startGame() {
-        console.log("[startGame DEBUG] Starting new game...");
-        this.updateDebugger('Starting new game...');
         this.gameRunning = true;
         this.score = 0;
-        this.speed = 3;
+        this.speed = 4;
         this.distance = 0;
         this.lastScoredDistance = 0;
-        this.nextThemeToggleScore = 500; // Reset theme toggle score for new game
-        this.player.y = this.groundY - this.player.height;
-        this.player.velY = 0;
-        this.player.grounded = true;
-        this.player.isDucking = false;
-        this.player.jumping = false;
-        this.jumpRequested = false; // To handle jump input reliably
-        this.obstacles = []; // Clear all previous obstacles
-        this.setNextSpawnDistance();
-        this.updateScoreDisplay();
-
-        this.currentGameState = 'playing'; // Set game state to playing
-        this.updateUIVisibility(); // Adjust UI to show game elements
-
-        this.updateDebugger('Game started. Good luck!');
-        console.log("[startGame DEBUG] Game started. gameRunning is:", this.gameRunning);
-
-        this.gameLoop(); // Ensure the game loop is active
-        console.log("[startGame DEBUG] gameLoop() explicitly called from startGame().");
+                this.ctx.lineTo(obs.x - flameLength, obs.y + obs.height * 3 / 4);
+                this.ctx.closePath();
+                this.ctx.fill();
+                break;
+        }
+        
+        this.ctx.restore();
     }
 
-    // --- Score Management ---
+    bindEvents() {
+        // Touch events for buttons
+        this.jumpButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.currentGameState === 'playing' && this.player.grounded) {
+                this.jumpRequested = true;
+                this.player.isDucking = false;
+            }
+        }, { passive: false });
+
+        // Click events for buttons (desktop/mobile backup)
+        this.jumpButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (this.currentGameState === 'playing' && this.player.grounded) {
+                this.jumpRequested = true;
+                this.player.isDucking = false;
+            }
+        });
+
+        this.duckButton.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (this.currentGameState === 'playing' && this.player.grounded) {
+                this.player.isDucking = true;
+                this.duckButton.style.background = '#b9a779';
+            }
+        }, { passive: false });
+
+        this.duckButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (this.currentGameState === 'playing' && this.player.grounded) {
+                this.player.isDucking = true;
+                this.duckButton.style.background = '#b9a779';
+            }
+        });
+
+        this.duckButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (this.currentGameState === 'playing') {
+                this.player.isDucking = false;
+                this.duckButton.style.background = '#054239';
+            }
+        });
+
+        this.duckButton.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            if (this.currentGameState === 'playing') {
+                this.player.isDucking = false;
+                this.duckButton.style.background = '#054239';
+            }
+        });
+
+        this.duckButton.addEventListener('mouseleave', (e) => {
+            if (this.currentGameState === 'playing') {
+                this.player.isDucking = false;
+                this.duckButton.style.background = '#054239';
+            }
+        });
+
+        // Keyboard events
+        document.addEventListener('keydown', (e) => {
+            if (this.currentGameState === 'playing') {
+                if ((e.code === 'Space' || e.code === 'ArrowUp') && this.player.grounded) {
+                    this.jumpRequested = true;
+                    this.player.isDucking = false;
+                    e.preventDefault();
+                } else if (e.code === 'ArrowDown' && this.player.grounded) {
+                    this.player.isDucking = true;
+                    e.preventDefault();
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown') {
+                this.player.isDucking = false;
+            }
+        });
+
+        // Restart button
+        this.restartBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (this.currentGameState === 'gameOver') {
+                this.startGame();
+            }
+        });
+
+        // Window events
+        window.addEventListener('resize', () => {
+            this.setupCanvas();
+            this.updateUIVisibility();
+        });
+
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.setupCanvas();
+                this.updateUIVisibility();
+            }, 100);
+        });
+    }
+}
+
+// Initialize game when page loads
+window.addEventListener('load', () => {
+    try {
+        new Game();
+    } catch (error) {
+        console.error('Game initialization failed:', error);
+    }
+});
+
     updateBestScoreDisplay() {
         if (this.bestScoreDisplay) {
             this.bestScoreDisplay.textContent = this.bestScore;
@@ -365,56 +397,45 @@ class Game {
     }
 
     updateScoreDisplay() {
-        if (this.currentScoreDisplay) {
-            this.currentScoreDisplay.textContent = this.score;
+        if (this.scoreDisplay) {
+            this.scoreDisplay.textContent = `نقاط: ${this.score}`;
         }
-        // Update best score if current score surpasses it
         if (this.score > this.bestScore) {
             this.bestScore = this.score;
             localStorage.setItem('tarboushBestScore', this.bestScore);
-            this.updateBestScoreDisplay(); // Update the best score display immediately
+            this.updateBestScoreDisplay();
         }
     }
 
-    // --- Obstacle Logic ---
     setNextSpawnDistance() {
-        // Random distance between min/max
-        this.distanceToNextSpawn = this.canvas.width + Math.random() * (this.obstacleSpawnMax - this.obstacleSpawnMin) + this.obstacleSpawnMin;
-        this.updateDebugger(`Next spawn in: ${Math.round(this.distanceToNextSpawn)}`);
+        this.distanceToNextSpawn = this.canvas.width + 300 + Math.random() * 400;
     }
 
     spawnObstacle() {
-        // Filter obstacles based on current speed
-        const availableObstacles = this.obstacleDefinitions.filter(obs => obs.minSpeed <= this.speed);
-        if (availableObstacles.length === 0) {
-            console.warn("No obstacles available at current speed!", this.speed);
-            this.updateDebugger("No obstacles for speed!");
-            return;
-        }
-        const obstacleDef = availableObstacles[Math.floor(Math.random() * availableObstacles.length)];
+        const obstacleTypes = [
+            { type: 'cactus', width: 25, height: 50, yOffset: 0 },
+            { type: 'rock', width: 35, height: 25, yOffset: 0 },
+            { type: 'bird', width: 40, height: 25, yOffset: 60 },
+            { type: 'missile', width: 60, height: 20, yOffset: 30 }
+        ];
 
-        let obstacleY = this.groundY - obstacleDef.height;
-        if (obstacleDef.yOffset !== undefined) {
-            obstacleY = this.groundY - obstacleDef.yOffset - obstacleDef.height;
-        }
-
-        const newObstacle = {
+        const obstacleData = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+        const obstacle = {
             x: this.canvas.width,
-            y: obstacleY,
-            width: obstacleDef.width,
-            height: obstacleDef.height,
-            type: obstacleDef.type,
-            draw: obstacleDef.draw,
-            hitbox: { // Use the hitbox defined in obstacleDefinition
-                x_offset: obstacleDef.hitbox.x_offset,
-                y_offset: obstacleDef.hitbox.y_offset,
-                width: obstacleDef.hitbox.width,
-                height: obstacleDef.hitbox.height
+            y: this.groundY - obstacleData.height - obstacleData.yOffset,
+            width: obstacleData.width,
+            height: obstacleData.height,
+            type: obstacleData.type,
+            hitbox: {
+                x_offset: 2,
+                y_offset: 2,
+                width: obstacleData.width - 4,
+                height: obstacleData.height - 4
             }
         };
-        this.obstacles.push(newObstacle);
+
+        this.obstacles.push(obstacle);
         this.setNextSpawnDistance();
-        this.updateDebugger(`Spawned: ${newObstacle.type}`);
     }
 
     updateObstacles() {
@@ -422,29 +443,26 @@ class Game {
             const obs = this.obstacles[i];
             obs.x -= this.speed;
 
-            // Check for collision
             if (this.checkCollision(this.player, obs)) {
+                this.createExplosionParticles(obs.x, obs.y);
                 this.gameOver();
-                return; // Stop updating obstacles if game is over
+                return;
             }
 
-            // Remove obstacle if off screen
             if (obs.x + obs.width < 0) {
                 this.obstacles.splice(i, 1);
             }
         }
 
-        // Spawn new obstacle if needed (check if last obstacle is far enough or no obstacles exist)
-        if (this.obstacles.length === 0 || (this.canvas.width - this.obstacles[this.obstacles.length - 1].x) >= this.distanceToNextSpawn) {
+        if (this.obstacles.length === 0 || 
+            (this.canvas.width - this.obstacles[this.obstacles.length - 1].x) >= this.distanceToNextSpawn) {
             this.spawnObstacle();
         }
     }
 
-    // --- Collision Detection ---
     checkCollision(player, obstacle) {
-        // Get player's current hitbox based on state
         const p_hitbox = player.isDucking ? player.duckHitbox : player.runHitbox;
-
+        
         const p_x = player.x + p_hitbox.x_offset;
         const p_y = player.y + p_hitbox.y_offset;
         const p_w = p_hitbox.width;
@@ -455,57 +473,67 @@ class Game {
         const o_w = obstacle.hitbox.width;
         const o_h = obstacle.hitbox.height;
 
-        // AABB collision detection
         return p_x < o_x + o_w &&
                p_x + p_w > o_x &&
                p_y < o_y + o_h &&
                p_y + p_h > o_y;
     }
 
-    // --- Game Over ---
+    createExplosionParticles(x, y) {
+        for (let i = 0; i < 10; i++) {
+            this.particles.push({
+                x: x + Math.random() * 30,
+                y: y + Math.random() * 30,
+                vx: (Math.random() - 0.5) * 8,
+                vy: (Math.random() - 0.5) * 8,
+                life: 30,
+                color: ['#FF4500', '#FFD700', '#FF6347'][Math.floor(Math.random() * 3)]
+            });
+        }
+    }
+
+    updateParticles() {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const particle = this.particles[i];
+            particle.x += particle.vx;
+            particle.y += particle.vy;
+            particle.vy += 0.2; // gravity
+            particle.life--;
+
+            if (particle.life <= 0) {
+                this.particles.splice(i, 1);
+            }
+        }
+    }
+
     gameOver() {
         this.gameRunning = false;
         this.currentGameState = 'gameOver';
-        this.updateDebugger(`Game Over! Score: ${this.score}`);
-        this.updateScoreDisplay(); // Update final score and best score
+        this.updateScoreDisplay();
+        if (this.finalScoreDisplay) {
+            this.finalScoreDisplay.textContent = this.score;
+        }
         this.updateUIVisibility();
-        console.log("[Game Over] Game Ended.");
     }
 
-    // --- Game Loop ---
     gameLoop() {
-        if (!this.gameRunning || (this.currentGameState !== 'playing' && this.currentGameState !== 'error')) {
-            // Keep requesting frames even when paused to re-evaluate game state
-            // If currentGameState is 'characterSelect' or 'gameOver', the loop will continue to request frames
-            // but update()/draw() won't execute until state is 'playing'.
-            requestAnimationFrame(() => this.gameLoop());
-            return;
+        if (this.currentGameState === 'playing' && this.gameRunning) {
+            this.update();
         }
-        // Only call update/draw if playing
-        if (this.currentGameState === 'playing') {
-            try {
-                this.update();
-                this.draw();
-            } catch (e) {
-                console.error("Error in gameLoop (caught by gameLoop):", e);
-                this.updateDebugger(`CRITICAL ERROR in gameLoop: ${e.message}. Loop stopped.`);
-                this.gameRunning = false;
-                this.currentGameState = 'error';
-                this.updateUIVisibility();
-                return; // Stop requesting further frames on critical error
-            }
-        }
-        requestAnimationFrame(() => this.gameLoop()); // Request next frame for next cycle
+        this.draw();
+        requestAnimationFrame(() => this.gameLoop());
     }
 
-    // --- Update Game State ---
     update() {
-        // Player vertical movement (jumping/gravity)
+        // Player animation
+        this.player.animFrame += this.player.animSpeed;
+        if (this.player.animFrame >= 4) this.player.animFrame = 0;
+
+        // Player physics
         if (this.player.jumping) {
-            this.player.velY += 0.5; // Gravity
+            this.player.velY += 0.6; // gravity
             this.player.y += this.player.velY;
 
-            // Check if player lands on ground
             if (this.player.y >= this.groundY - this.player.height) {
                 this.player.y = this.groundY - this.player.height;
                 this.player.jumping = false;
@@ -513,339 +541,512 @@ class Game {
                 this.player.velY = 0;
             }
         }
-        // Handle jump request if not already jumping and on ground
+
         if (this.jumpRequested && this.player.grounded) {
-            this.player.velY = -10; // Jump strength (adjust as needed)
+            this.player.velY = -12;
             this.player.jumping = true;
             this.player.grounded = false;
-            this.jumpRequested = false; // Reset flag
-            this.player.isDucking = false; // Player can't duck while jumping
+            this.jumpRequested = false;
+            this.player.isDucking = false;
         }
 
-        // Ensure player cannot duck while in air
         if (!this.player.grounded && this.player.isDucking) {
-             this.player.isDucking = false; // Force stop ducking if player leaves ground
+            this.player.isDucking = false;
         }
 
-
-        // Move clouds
+        // Update clouds
         this.clouds.forEach(cloud => {
             cloud.x -= cloud.speed;
             if (cloud.x + cloud.w < 0) {
-                cloud.x = this.canvas.width + Math.random() * 50; // Loop cloud, add some randomness
+                cloud.x = this.canvas.width + Math.random() * 100;
             }
         });
 
-        // Update obstacles
+        // Update obstacles and particles
         this.updateObstacles();
+        this.updateParticles();
 
-        // Update score based on distance
+        // Update score
         this.distance += this.speed;
-        if (this.distance - this.lastScoredDistance >= 10) { // Score every 10 units of distance moved
+        if (this.distance - this.lastScoredDistance >= 15) {
             this.score++;
             this.lastScoredDistance = this.distance;
             this.updateScoreDisplay();
 
-            // Theme toggle logic
             if (this.score >= this.nextThemeToggleScore) {
                 this.toggleDayNight();
-                this.nextThemeToggleScore += 500; // Next toggle in another 500 points
-                this.updateDebugger(`Toggling theme! Next: ${this.nextThemeToggleScore}`);
+                this.nextThemeToggleScore += 500;
             }
         }
 
-        // Speed increase over time (adjust rate as needed for difficulty)
-        this.speed += 0.0005;
-        // Update available obstacle patterns as speed increases
-        this.obstaclePatterns = this.obstacleDefinitions.filter(obs => obs.minSpeed <= this.speed);
+        // Increase speed gradually
+        this.speed += 0.001;
     }
 
-    // --- Drawing Functions ---
     draw() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height); // Clear canvas
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw sky/background (CSS var is applied to body/canvas container, use for canvas fill)
-        const canvasBgColor = getComputedStyle(document.documentElement).getPropertyValue('--canvas-bg-color').trim();
-        this.ctx.fillStyle = canvasBgColor;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        // Draw sky/background (solid color)
+        this.ctx.fillStyle = this._getColor('sky');
+        this.ctx.fillRect(0, 0, this.canvas.width, this.groundY);
 
-        // Draw ground
+        // Draw ground with shadow
+        this.ctx.fillStyle = this._getColor('groundShadow');
+        this.ctx.fillRect(0, this.groundY + 5, this.canvas.width, this.canvas.height - this.groundY - 5);
         this.ctx.fillStyle = this._getColor('ground');
         this.ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
 
         // Draw clouds
         this.clouds.forEach(cloud => {
+            this.ctx.save();
+            this.ctx.globalAlpha = cloud.opacity;
             this.ctx.fillStyle = this._getColor('cloud');
-            this.ctx.fillRect(cloud.x, cloud.y, cloud.w, cloud.h); // Simple cloud drawing
-            // Could add more complex cloud shapes here
+            this.ctx.beginPath();
+            this.ctx.arc(cloud.x, cloud.y, cloud.w * 0.3, 0, Math.PI * 2);
+            this.ctx.arc(cloud.x + cloud.w * 0.3, cloud.y, cloud.w * 0.4, 0, Math.PI * 2);
+            this.ctx.arc(cloud.x + cloud.w * 0.6, cloud.y, cloud.w * 0.3, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
         });
 
         // Draw obstacles
-        this.obstacles.forEach(obs => {
-            obs.draw(this.ctx, obs, this._getColor); // Pass context, obstacle, and color getter
+        this.obstacles.forEach(obs => this.drawObstacle(obs));
+
+        // Draw particles
+        this.particles.forEach(particle => {
+            this.ctx.save();
+            this.ctx.globalAlpha = particle.life / 30;
+            this.ctx.fillStyle = particle.color;
+            this.ctx.beginPath();
+            this.ctx.arc(particle.x, particle.y, 3, 0, Math.PI * 2);
+            this.ctx.fill();
+            this.ctx.restore();
         });
 
         // Draw player
-        this._drawPlayer();
-
-        // Optional: Draw hitboxes for debugging (uncomment to activate)
-        // this._drawHitboxes();
+        this.drawPlayer();
     }
 
-    // --- Specific Drawing Methods for Player and Obstacles ---
-    _drawPlayer() {
+    drawPlayer() {
         const p = this.player;
-        const currentColors = this.isNightMode ? this.themeColors.night : this.themeColors.day;
+        const colors = this.isNightMode ? this.themeColors.night : this.themeColors.day;
 
-        this.ctx.save(); // Save current canvas state
+        this.ctx.save();
 
-        // Main body (adjusted for ducking)
-        let bodyY = p.y;
+        // Calculate animation offset for walking
+        const walkOffset = this.player.grounded && !this.player.isDucking ? 
+            Math.sin(this.player.animFrame) * 2 : 0;
+
+        // Body
+        let bodyY = p.y + walkOffset;
         let bodyHeight = p.height;
         if (p.isDucking) {
-            bodyY = p.y + p.height / 2;
-            bodyHeight = p.height / 2;
+            bodyY = p.y + p.height * 0.4 + walkOffset;
+            bodyHeight = p.height * 0.6;
         }
-        this.ctx.fillStyle = currentColors.playerBody;
-        this.ctx.fillRect(p.x, bodyY, p.width, bodyHeight);
 
-        // Tarboush (hat) - adjust position based on ducking
-        this.ctx.fillStyle = currentColors.playerTarboush;
-        const tarboushTopY = p.isDucking ? p.y + p.height / 2 - p.height * 0.2 : p.y - p.height * 0.2;
-        const tarboushHeight = p.height * 0.2; // Base height of tarboush rectangle part
-        const tarboushPeakHeight = p.height * 0.15; // Height of the peak part
-        const tarboushPeakWidth = p.width * 0.2; // Width of the peak part
+        // Draw body (thobe)
+        this.ctx.fillStyle = colors.playerBody;
+        this.ctx.fillRect(p.x + 5, bodyY + 15, p.width - 10, bodyHeight - 15);
 
+        // Draw head/face
+        this.ctx.fillStyle = colors.playerSkin;
         this.ctx.beginPath();
-        this.ctx.moveTo(p.x + p.width * 0.2, tarboushTopY + tarboushHeight); // Bottom-left corner
-        this.ctx.lineTo(p.x + p.width * 0.8, tarboushTopY + tarboushHeight); // Bottom-right corner
-        this.ctx.lineTo(p.x + p.width * 0.9, tarboushTopY); // Top-right (slant)
-        this.ctx.lineTo(p.x + p.width * 0.1, tarboushTopY); // Top-left (slant)
+        this.ctx.arc(p.x + p.width / 2, bodyY + 15, 12, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Draw tarboush (green as requested)
+        this.ctx.fillStyle = colors.playerTarboush;
+        
+        // Tarboush base
+        this.ctx.fillRect(p.x + p.width / 2 - 10, bodyY - 5, 20, 15);
+        
+        // Tarboush top part
+        this.ctx.beginPath();
+        this.ctx.moveTo(p.x + p.width / 2 - 8, bodyY - 5);
+        this.ctx.lineTo(p.x + p.width / 2 + 8, bodyY - 5);
+        this.ctx.lineTo(p.x + p.width / 2 + 6, bodyY - 15);
+        this.ctx.lineTo(p.x + p.width / 2 - 6, bodyY - 15);
         this.ctx.closePath();
         this.ctx.fill();
 
-        // Top cap of the tarboush (rectangle on top of the slanted part)
-        this.ctx.fillRect(p.x + p.width * 0.4, tarboushTopY - tarboushPeakHeight, tarboushPeakWidth, tarboushPeakHeight);
-
-
-        // Player face/skin - adjust position based on ducking
-        const faceY = p.isDucking ? p.y + p.height / 2 + p.height * 0.05 : p.y + p.height * 0.15;
-        const faceHeight = p.isDucking ? p.height * 0.2 : p.height * 0.4;
-        this.ctx.fillStyle = currentColors.playerSkin;
-        this.ctx.fillRect(p.x + p.width * 0.15, faceY, p.width * 0.7, faceHeight);
-
-        // Eyes (simple dots) - adjust position based on ducking
-        const eyeY = p.isDucking ? p.y + p.height / 2 + p.height * 0.1 : p.y + p.height * 0.25;
-        this.ctx.fillStyle = currentColors.playerDetail;
+        // Tarboush tassel
+        this.ctx.fillStyle = '#FFD700';
         this.ctx.beginPath();
-        this.ctx.arc(p.x + p.width * 0.35, eyeY, 2, 0, Math.PI * 2);
-        this.ctx.arc(p.x + p.width * 0.65, eyeY, 2, 0, Math.PI * 2);
+        this.ctx.arc(p.x + p.width / 2 + 8, bodyY - 10, 3, 0, Math.PI * 2);
         this.ctx.fill();
 
-        this.ctx.restore(); // Restore canvas state
+        // Eyes
+        this.ctx.fillStyle = colors.playerDetail;
+        this.ctx.beginPath();
+        this.ctx.arc(p.x + p.width / 2 - 4, bodyY + 12, 1.5, 0, Math.PI * 2);
+        this.ctx.arc(p.x + p.width / 2 + 4, bodyY + 12, 1.5, 0, Math.PI * 2);
+        this.ctx.fill();
+
+        // Mustache
+        this.ctx.fillStyle = colors.playerMustache;
+        this.ctx.fillRect(p.x + p.width / 2 - 6, bodyY + 18, 12, 3);
+
+        // Arms (simple)
+        this.ctx.fillStyle = colors.playerSkin;
+        if (!p.isDucking) {
+            // Running arms
+            this.ctx.fillRect(p.x + 2, bodyY + 20 + walkOffset, 8, 15);
+            this.ctx.fillRect(p.x + p.width - 10, bodyY + 25 - walkOffset, 8, 15);
+        } else {
+            // Ducking arms
+            this.ctx.fillRect(p.x + 5, bodyY + 20, 10, 8);
+            this.ctx.fillRect(p.x + p.width - 15, bodyY + 20, 10, 8);
+        }
+
+        // Legs (when not ducking)
+        if (!p.isDucking && p.grounded) {
+            this.ctx.fillStyle = colors.playerDetail;
+            const legOffset = Math.sin(this.player.animFrame * 2) * 3;
+            this.ctx.fillRect(p.x + p.width / 2 - 8, bodyY + bodyHeight - 5, 6, 15 + legOffset);
+            this.ctx.fillRect(p.x + p.width / 2 + 2, bodyY + bodyHeight - 5, 6, 15 - legOffset);
+        }
+
+        this.ctx.restore();
     }
 
-    _drawCactus(ctx, obs, getColor) {
-        ctx.fillStyle = getColor('obstacleGreen');
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height); // Main body
-        ctx.fillRect(obs.x + obs.width * 0.7, obs.y + obs.height * 0.2, obs.width * 0.3, obs.height * 0.3); // Arm 1
-        ctx.fillRect(obs.x, obs.y + obs.height * 0.4, obs.width * 0.3, obs.height * 0.3); // Arm 2
-    }
+    drawObstacle(obs) {
+        this.ctx.save();
+        
+        switch (obs.type) {
+            case 'cactus':
+                this.ctx.fillStyle = this._getColor('obstacleGreen');
+                this.ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                // Cactus arms
+                this.ctx.fillRect(obs.x - 8, obs.y + 15, 12, 20);
+                this.ctx.fillRect(obs.x + obs.width - 4, obs.y + 10, 12, 15);
+                break;
+                
+            case 'rock':
+                this.ctx.fillStyle = this._getColor('obstacleGrey');
+                this.ctx.beginPath();
+                this.ctx.moveTo(obs.x, obs.y + obs.height);
+                this.ctx.lineTo(obs.x + obs.width * 0.3, obs.y);
+                this.ctx.lineTo(obs.x + obs.width * 0.7, obs.y + obs.height * 0.2);
+                this.ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
+                this.ctx.closePath();
+                this.ctx.fill();
+                break;
+                
+            case 'bird':
+                this.ctx.fillStyle = this._getColor('obstacleBlack');
+                // Bird body
+                this.ctx.beginPath();
+                this.ctx.ellipse(obs.x + obs.width / 2, obs.y + obs.height / 2, 
+                               obs.width / 3, obs.height / 3, 0, 0, Math.PI * 2);
+                this.ctx.fill();
+                // Wings
+                const wingFlap = Math.sin(Date.now() * 0.01) * 5;
+                this.ctx.beginPath();
+                this.ctx.moveTo(obs.x, obs.y + obs.height / 2);
+                this.ctx.lineTo(obs.x + 15, obs.y + wingFlap);
+                this.ctx.lineTo(obs.x + 15, obs.y + obs.height - wingFlap);
+                this.ctx.fill();
+                
+                this.ctx.beginPath();
+                this.ctx.moveTo(obs.x + obs.width, obs.y + obs.height / 2);
+                this.ctx.lineTo(obs.x + obs.width - 15, obs.y + wingFlap);
+                this.ctx.lineTo(obs.x + obs.width - 15, obs.y + obs.height - wingFlap);
+                this.ctx.fill();
+                break;
+                
+            case 'missile':
+                // Missile body
+                this.ctx.fillStyle = this._getColor('obstacleGrey');
+                this.ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+                
+                // Nose cone
+                this.ctx.beginPath();
+                this.ctx.moveTo(obs.x + obs.width, obs.y);
+                this.ctx.lineTo(obs.x + obs.width + 15, obs.y + obs.height / 2);
+                this.ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                // Flame trail
+                this.ctx.fillStyle = this._getColor('obstacleMissileFlame');
+                const flameLength = 20 + Math.sin(Date.now() * 0.02) * 5;
+                this.ctx.beginPath();
+                this.ctx.moveTo(obs.x, obs.y + obs.height / 2);
+                this.ctx.lineTo(obs.x - flameLength, obs.y + obs.height / 4);
+                this.ctx.lineTo(obs.x - flameLength * 0.7, obs.y + obs.height / 2);
+                this.ctx.lineTo(obs.x - flameLengthclass Game {
+    constructor() {
+        this.gameRunning = false;
+        this.score = 0;
+        this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
+        this.speed = 4;
+        this.distance = 0;
+        this.lastScoredDistance = 0;
+        this.nextThemeToggleScore = 500;
 
-    _drawRock(ctx, obs, getColor) {
-        ctx.fillStyle = getColor('obstacleGrey');
-        ctx.beginPath();
-        ctx.moveTo(obs.x, obs.y + obs.height);
-        ctx.lineTo(obs.x + obs.width * 0.2, obs.y + obs.height * 0.5);
-        ctx.lineTo(obs.x + obs.width * 0.5, obs.y);
-        ctx.lineTo(obs.x + obs.width * 0.8, obs.y + obs.height * 0.3);
-        ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
-        ctx.closePath();
-        ctx.fill();
-    }
+        // Enhanced player with animation states
+        this.player = {
+            x: 120, y: 0, width: 50, height: 70,
+            velY: 0, jumping: false, grounded: true, isDucking: false,
+            animFrame: 0, animSpeed: 0.2,
+            runHitbox: { x_offset: 8, y_offset: 8, width: 34, height: 62 },
+            duckHitbox: { x_offset: 8, y_offset: 35, width: 34, height: 35 }
+        };
 
-    _drawSpikyBush(ctx, obs, getColor) {
-        ctx.fillStyle = getColor('obstacleGreen');
-        ctx.beginPath();
-        ctx.arc(obs.x + obs.width * 0.2, obs.y + obs.height * 0.8, obs.width * 0.2, 0, Math.PI * 2);
-        ctx.arc(obs.x + obs.width * 0.5, obs.y + obs.height * 0.5, obs.width * 0.3, 0, Math.PI * 2);
-        ctx.arc(obs.x + obs.width * 0.8, obs.y + obs.height * 0.8, obs.width * 0.2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Spikes (simple triangles)
-        ctx.fillStyle = getColor('obstacleBlack');
-        ctx.beginPath();
-        ctx.moveTo(obs.x + obs.width * 0.5, obs.y + obs.height * 0.5);
-        ctx.lineTo(obs.x + obs.width * 0.5 - 5, obs.y + obs.height * 0.5 - 10);
-        ctx.lineTo(obs.x + obs.width * 0.5 + 5, obs.y + obs.height * 0.5 - 10);
-        ctx.fill();
-    }
-
-    _drawBird(ctx, obs, getColor) {
-        ctx.fillStyle = getColor('obstacleBlack');
-        ctx.beginPath();
-        ctx.ellipse(obs.x + obs.width / 2, obs.y + obs.height / 2, obs.width / 2, obs.height / 2, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Wings (simple triangles)
-        ctx.beginPath();
-        ctx.moveTo(obs.x, obs.y + obs.height / 2);
-        ctx.lineTo(obs.x + obs.width / 4, obs.y);
-        ctx.lineTo(obs.x + obs.width / 4, obs.y + obs.height);
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(obs.x + obs.width, obs.y + obs.height / 2);
-        ctx.lineTo(obs.x + obs.width * 3 / 4, obs.y);
-        ctx.lineTo(obs.x + obs.width * 3 / 4, obs.y + obs.height);
-        ctx.fill();
-    }
-
-    _drawMissile(ctx, obs, getColor) {
-        ctx.fillStyle = getColor('obstacleGrey');
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height); // Missile body
-
-        // Nose cone
-        ctx.beginPath();
-        ctx.moveTo(obs.x + obs.width, obs.y);
-        ctx.lineTo(obs.x + obs.width + 10, obs.y + obs.height / 2);
-        ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
-        ctx.closePath();
-        ctx.fill();
-
-        // Flame (simple triangle)
-        ctx.fillStyle = getColor('obstacleMissileFlame');
-        ctx.beginPath();
-        ctx.moveTo(obs.x, obs.y + obs.height / 2);
-        ctx.lineTo(obs.x - 15, obs.y + obs.height / 4);
-        ctx.lineTo(obs.x - 15, obs.y + obs.height * 3 / 4);
-        ctx.closePath();
-        ctx.fill();
-    }
-
-
-    // --- Debugging Helper: Draw Hitboxes ---
-    // Uncomment this method call in draw() to visualize hitboxes
-    // _drawHitboxes() {
-    //     this.ctx.strokeStyle = 'red';
-    //     this.ctx.lineWidth = 2;
-
-    //     // Player Hitbox
-    //     const p = this.player;
-    //     const currentHitbox = p.isDucking ? p.duckHitbox : p.runHitbox;
-    //     this.ctx.strokeRect(p.x + currentHitbox.x_offset, p.y + currentHitbox.y_offset, currentHitbox.width, currentHitbox.height);
-
-    //     // Obstacle Hitboxes
-    //     this.obstacles.forEach(obs => {
-    //         const o_hitbox = obs.hitbox;
-    //         this.ctx.strokeRect(obs.x + o_hitbox.x_offset, obs.y + o_hitbox.y_offset, o_hitbox.width, o_hitbox.height);
-    //     });
-    // }
-
-    // --- Event Binding ---
-    bindEvents() {
-        // Jump Button (Touch)
-        this.jumpButton.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent default touch behavior (e.g., scrolling, double-tap zoom)
-            if (this.currentGameState === 'playing' && this.player.grounded) {
-                this.jumpRequested = true; // Set flag for jump in next update cycle
-                this.player.isDucking = false; // Stop ducking if jumping
+        this.isNightMode = false;
+        this.particles = [];
+        
+        // Official Syrian Identity Color Themes
+        this.themeColors = {
+            day: {
+                ground: '#b9a779', groundShadow: '#988561',
+                cloud: 'rgba(237, 235, 224, 0.9)', 
+                playerTarboush: '#054239', // Forest secondary
+                playerBody: '#edebe0', playerSkin: '#b9a779', playerDetail: '#3d3a3b',
+                playerMustache: '#988561',
+                obstacleGreen: '#42B177', obstacleBlack: '#3d3a3b', obstacleGrey: '#988561',
+                obstacleMissileFlame: '#b9a779',
+                sky: '#42B177', // Forest primary
+                coin: '#b9a779'
+            },
+            night: {
+                ground: '#6B2F2A', groundShadow: '#4A1F1E',
+                cloud: 'rgba(237, 235, 224, 0.4)',
+                playerTarboush: '#002623', // Forest dark
+                playerBody: '#edebe0', playerSkin: '#b9a779', playerDetail: '#edebe0',
+                playerMustache: '#988561',
+                obstacleGreen: '#054239', obstacleBlack: '#3d3a3b', obstacleGrey: '#6B2F2A',
+                obstacleMissileFlame: '#988561',
+                sky: '#054239', // Forest secondary
+                coin: '#988561'
             }
-        }, { passive: false }); // Use passive: false to allow preventDefault
+        };
 
-        // Duck Button (Touch - Press and Hold)
-        this.duckButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            if (this.currentGameState === 'playing' && this.player.grounded) {
-                this.player.isDucking = true;
-                this.duckButton.classList.add('active'); // Add visual feedback for active duck button
+        this.characters = [
+            { 
+                id: 'shami_abu_tarboush', 
+                name: 'شامي أبو طربوش', 
+                available: true, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#42B177" rx="8"/>
+                        <circle cx="30" cy="38" r="16" fill="#b9a779"/>
+                        <rect x="18" y="8" width="24" height="16" fill="#054239" rx="2"/>
+                        <rect x="27" y="4" width="6" height="6" fill="#054239"/>
+                        <circle cx="26" cy="35" r="1.5" fill="#3d3a3b"/>
+                        <circle cx="34" cy="35" r="1.5" fill="#3d3a3b"/>
+                        <rect x="24" y="40" width="12" height="2" fill="#988561" rx="1"/>
+                        <rect x="22" y="48" width="16" height="12" fill="#edebe0"/>
+                        <circle cx="44" cy="10" r="2" fill="#988561"/>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'fatom_hays_bays', 
+                name: 'فطوم حيص بيص', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#988561" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#edebe0">ف</text>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'zulfiqar', 
+                name: 'زولفيقار', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#3d3a3b" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#edebe0">ز</text>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'bakri_abu_halab', 
+                name: 'بكري أبو حلب', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#b9a779" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#054239">ب</text>
+                    </svg>
+                `)
+            },
+            { 
+                id: 'warni_warni', 
+                name: 'ورني ورني', 
+                available: false, 
+                image: 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="60" height="60" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="0" y="0" width="60" height="60" fill="#161616" rx="8"/>
+                        <text x="30" y="38" font-family="Arial" font-size="20" font-weight="normal" text-anchor="middle" fill="#edebe0">و</text>
+                    </svg>
+                `)
             }
-        }, { passive: false });
+        ];
+        this.selectedCharacterId = 'shami_abu_tarboush';
 
-        this.duckButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            if (this.currentGameState === 'playing' && this.player.isDucking) {
-                this.player.isDucking = false;
-                this.duckButton.classList.remove('active'); // Remove visual feedback
-            }
-        });
+        this.init();
+    }
 
-        // Keyboard Controls (for desktop/testing)
-        document.addEventListener('keydown', (e) => {
+    init() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.setupCanvas();
+        this.setupUI();
+        this.bindEvents();
+        
+        this.obstacles = [];
+        this.clouds = this.createClouds();
+        this.setNextSpawnDistance();
+        
+        this.currentGameState = 'characterSelect';
+        this.updateUIVisibility();
+        this.renderCharacterSelectScreen();
+        this.gameLoop();
+    }
+
+    setupCanvas() {
+        const desiredAspectRatio = 2.2;
+        const minPadding = 40;
+        const maxWidth = 900;
+        const maxHeight = 400;
+
+        let targetWidth = Math.min(window.innerWidth - minPadding, maxWidth);
+        let targetHeight = Math.min(window.innerHeight - minPadding, maxHeight);
+
+        if (targetWidth / targetHeight > desiredAspectRatio) {
+            targetWidth = targetHeight * desiredAspectRatio;
+        } else {
+            targetHeight = targetWidth / desiredAspectRatio;
+        }
+
+        this.canvas.width = Math.max(targetWidth, 400);
+        this.canvas.height = Math.max(targetHeight, 200);
+        
+        this.groundY = this.canvas.height - 60;
+        this.player.y = this.groundY - this.player.height;
+    }
+
+    setupUI() {
+        this.scoreDisplay = document.getElementById('score');
+        this.finalScoreDisplay = document.getElementById('finalScore');
+        this.bestScoreDisplay = document.getElementById('bestScore');
+        this.gameOverScreen = document.getElementById('gameOver');
+        this.characterSelectScreen = document.getElementById('characterSelectScreen');
+        this.gameContainer = document.querySelector('.game-container');
+        this.uiContainer = document.getElementById('ui-container');
+        this.jumpButton = document.getElementById('jumpButton');
+        this.duckButton = document.getElementById('duckButton');
+        this.restartBtn = document.getElementById('restartBtn');
+        this.startGameBtn = document.getElementById('start-game-btn');
+        this.orientationWarning = document.getElementById('orientation-warning');
+        
+        this.updateBestScoreDisplay();
+    }
+
+    createClouds() {
+        const clouds = [];
+        for (let i = 0; i < 4; i++) {
+            clouds.push({
+                x: Math.random() * this.canvas.width,
+                y: 30 + Math.random() * (this.groundY / 3),
+                w: 60 + Math.random() * 40,
+                h: 25 + Math.random() * 15,
+                speed: 0.3 + Math.random() * 0.4,
+                opacity: 0.6 + Math.random() * 0.4
+            });
+        }
+        return clouds;
+    }
+
+    _getColor(colorName) {
+        const mode = this.isNightMode ? 'night' : 'day';
+        const color = this.themeColors[mode][colorName];
+        return color || '#42B177'; // Fallback to forest primary if color not found
+    }
+
+    toggleDayNight() {
+        this.isNightMode = !this.isNightMode;
+        document.body.classList.toggle('night-mode', this.isNightMode);
+        this.updateScoreDisplay();
+    }
+
+    updateUIVisibility() {
+        const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+        
+        document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+        this.jumpButton.style.display = 'none';
+        this.duckButton.style.display = 'none';
+
+        if (isLandscape) {
             if (this.currentGameState === 'playing') {
-                if (e.code === 'Space' && this.player.grounded) {
-                    if (!this.player.jumping) { // Prevent multiple jump requests while airborne
-                        this.jumpRequested = true;
-                    }
-                    this.player.isDucking = false;
-                } else if (e.code === 'ArrowDown' && this.player.grounded) {
-                    this.player.isDucking = true;
+                this.gameContainer.style.display = 'flex';
+                this.uiContainer.style.display = 'flex';
+                this.jumpButton.style.display = 'flex';
+                this.duckButton.style.display = 'flex';
+            } else if (this.currentGameState === 'gameOver') {
+                this.gameContainer.style.display = 'flex';
+                this.uiContainer.style.display = 'flex';
+                this.gameOverScreen.style.display = 'flex';
+            } else if (this.currentGameState === 'characterSelect') {
+                this.characterSelectScreen.style.display = 'flex';
+            }
+        } else {
+            this.orientationWarning.style.display = 'flex';
+        }
+    }
+
+    renderCharacterSelectScreen() {
+        const characterGrid = this.characterSelectScreen.querySelector('.character-grid');
+        characterGrid.innerHTML = '';
+
+        this.characters.forEach(char => {
+            const slot = document.createElement('div');
+            slot.classList.add('character-slot');
+            slot.setAttribute('data-char-id', char.id);
+
+            slot.innerHTML = `
+                <img src="${char.image}" alt="${char.name}" loading="lazy">
+                <p>${char.name}</p>
+            `;
+
+            if (char.available) {
+                slot.classList.add('available');
+                if (char.id === this.selectedCharacterId) {
+                    slot.classList.add('selected');
                 }
+                slot.addEventListener('click', () => {
+                    this.selectedCharacterId = char.id;
+                    characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
+                    slot.classList.add('selected');
+                });
+            } else {
+                slot.classList.add('grayed-out');
             }
-            // Allow Konami code to work regardless of game state
-            konamiCodeCheck(e.code);
+            characterGrid.appendChild(slot);
         });
 
-        document.addEventListener('keyup', (e) => {
-            if (this.currentGameState === 'ArrowDown' && this.player.isDucking) { // Fix: Should be e.code === 'ArrowDown'
-                this.player.isDucking = false;
-            }
-        });
-
-        // Restart Button
-        this.restartBtn.addEventListener('click', () => {
-            if (this.currentGameState === 'gameOver') {
+        if (this._startGameButtonHandler) {
+            this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
+        }
+        this._startGameButtonHandler = () => {
+            if (this.currentGameState === 'characterSelect') {
                 this.startGame();
             }
-        });
-
-        // Window Resize and Orientation Change
-        window.addEventListener('resize', () => {
-            this.setupCanvas();
-            this.updateUIVisibility();
-        });
-        window.addEventListener('orientationchange', () => {
-            this.setupCanvas();
-            this.updateUIVisibility();
-        });
+        };
+        this.startGameBtn.addEventListener('click', this._startGameButtonHandler);
     }
-}
 
-// --- Konami Code Debugger Toggle ---
-const konamiCode = [
-    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
-    'KeyB', 'KeyA'
-];
-let konamiCodePosition = 0;
-
-function konamiCodeCheck(keyCode) {
-    if (keyCode === konamiCode[konamiCodePosition]) {
-        konamiCodePosition++;
-        if (konamiCodePosition === konamiCode.length) {
-            konamiCodePosition = 0; // Reset for next time
-            const debuggerDisplay = document.getElementById('debuggerDisplay');
-            if (debuggerDisplay) {
-                debuggerDisplay.style.display = debuggerDisplay.style.display === 'flex' ? 'none' : 'flex';
-                console.log("Konami Code activated! Debugger toggled.");
-            }
-        }
-    } else {
-        konamiCodePosition = 0; // Reset if the sequence is broken
-    }
-}
-
-// Wrap the game initialization in a window.addEventListener('load')
-window.addEventListener('load', () => {
-    console.log("[Load DEBUG] Window loaded. Initializing Game.");
-    try {
-        new Game();
-    } catch (e) {
-        const debuggerElem = document.getElementById('debuggerDisplay');
-        if (debuggerElem) {
-            debuggerElem.textContent = `FATAL Error on load: ${e.message}. Check console.`;
-            debuggerElem.style.display = 'flex'; // Ensure debugger is visible on fatal error
-        }
-        console.error("Fatal error during game initialization on load:", e);
-    }
-});
+    startGame() {
+        this.gameRunning = true;
+        this.score = 0;
+        this.speed = 4;
+        this.distance = 0;
+        this.lastScoredDistance = 0;
+        this.nextTh
