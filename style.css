@@ -352,7 +352,6 @@ html, body {
     padding: 32px; /* Adjusted padding */
     border-radius: 12px; /* Less rounded corners */
     width: 280px; /* Fixed width for the dialog content */
-    text-align: center;
     box-shadow: 0 8px 24px rgba(5, 66, 57, 0.3);
     border: 2px solid var(--golden-wheat-secondary); /* Added border */
     backdrop-filter: none;
