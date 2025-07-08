@@ -1,246 +1,48 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl"> <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>لحّق إذا بتلحق</title> <style>
-    /* Syrian Flag & Base Colors (fixed, not inverted) */
-    :root {
-        --syrian-green: #007A3D;
-        --syrian-white: #FFFFFF;
-        --syrian-black: #000000;
-        --revolutionary-red: #CE1126;
-
-        /* Day Mode Colors (Default) */
-        --bg-color-main: #E0FFFF; /* Light background for body */
-        --canvas-bg-color: #87CEEB; /* Sky Blue */
-        --ground-fill-color: #A0522D; /* Sienna */
-
-        --ui-score-bg: rgba(0, 0, 0, 0.7);
-        --ui-button-bg: var(--syrian-green);
-        --ui-gameover-bg: rgba(0,0,0,0.85);
-        --ui-gameover-h2: var(--revolutionary-red);
-        --ui-text-main: var(--syrian-white);
-
-        --button-border-color: var(--syrian-white);
-        --canvas-border-color: var(--syrian-black);
-    }
-
-    /* Night Mode Overrides */
-    body.night-mode {
-        --bg-color-main: #111122; /* Dark background for body */
-        --canvas-bg-color: #0F0F28; /* Very dark blue */
-        --ground-fill-color: #5A2C10; /* Darker brown */
-
-        --ui-score-bg: rgba(255, 255, 255, 0.2);
-        --ui-button-bg: #004D27; /* Darker Green */
-        --ui-gameover-bg: rgba(255,255,255,0.2);
-        --ui-gameover-h2: #FF667A; /* Lighter Red */
-        --ui-text-main: #CCCCCC;
-
-        /* Fixed colors remain the same for night mode */
-    }
-
-    html, body {
-      margin: 0; padding: 0; overflow: hidden;
-      background: var(--bg-color-main);
-      font-family: 'Helvetica Neue', Arial, sans-serif;
-      height: 100%;
-      touch-action: manipulation;
-      transition: background-color 0.5s ease;
-    }
-
-    /* --- Base display properties for all major UI components (JS will control display:none/flex/block) --- */
-    /* All main screens and containers will be positioned absolutely to overlap */
-    .game-container, #ui-container, .action-button, #debuggerDisplay,
-    #characterSelectScreen, #gameOver, #orientation-warning {
-        position: absolute;
-        top: 0; left: 0; width: 100%; height: 100%;
-        box-sizing: border-box;
-        display: none; /* Hidden by default, JS will show what's needed */
-    }
-
-    /* Specific display types when they are made visible by JS (to ensure correct layout) */
-    .game-container { justify-content: center; align-items: center; }
-    #ui-container { justify-content: center; align-items: center; pointer-events: none; }
-    .action-button { justify-content: center; align-items: center; pointer-events: auto; }
-    #debuggerDisplay { align-items: flex-start; text-align: left; }
-    #characterSelectScreen { flex-direction: column; justify-content: flex-start; align-items: center; text-align: center; padding-top: 50px; } /* Adjusted padding-top for title */
-    #gameOver { display: flex; justify-content: center; align-items: center; pointer-events: auto; z-index: 200; } /* Make game over screen a flex container to center its content */
-    /* #score and canvas rules removed as they were empty rulesets */
-
-
-    #characterSelectScreen h2 {
-        font-size: 2.2em; margin-bottom: 30px; color: var(--revolutionary-red);
-    }
-    .character-grid {
-        display: flex; /* Changed to flex for vertical list */
-        flex-direction: column; /* Stack items vertically */
-        align-items: center; /* Center items horizontally */
-        gap: 15px; /* Spacing between list items */
-        margin-bottom: 30px;
-        max-width: 300px; /* Max width for each item */
-        width: 90%; /* Occupy most of the width */
-        margin-left: auto; /* Center grid */
-        margin-right: auto;
-    }
-    .character-slot {
-        background: rgba(0,0,0,0.5); border-radius: 15px; padding: 15px; /* More padding, rounded corners */
-        display: flex; /* Flex for content inside slot */
-        align-items: center; /* Vertically align image and text */
-        width: 100%; /* Take full width of grid */
-        color: var(--syrian-white); font-weight: bold; font-size: 1.1em; /* Increased font size */
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        transition: background-color 0.3s ease, transform 0.1s ease;
-        text-align: left; /* Align text inside slot to left */
-        cursor: default; /* Default cursor for non-clickable */
-    }
-    .character-slot.available {
-        background: var(--syrian-green); cursor: pointer;
-    }
-    .character-slot.available:hover, .character-slot.selected { /* Added selected state */
-        transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-        background: var(--revolutionary-red);
-    }
-    .character-slot.grayed-out {
-        background: #555; opacity: 0.7;
-    }
-    .character-slot img {
-        width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--syrian-white);
-        margin-right: 15px; /* Space between image and text */
-        flex-shrink: 0; /* Prevent image from shrinking */
-    }
-    .character-slot.grayed-out img {
-        filter: grayscale(100%); opacity: 0.6;
-    }
-    .character-slot p { margin: 0; flex-grow: 1; } /* Allow text to take remaining space */
-    #start-game-btn {
-        padding: 15px 30px; font-size: 1.5em; background: var(--revolutionary-red);
-        color: var(--syrian-white); border: none; border-radius: 30px; cursor: pointer;
-        font-weight: bold; box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-        transition: background-color 0.3s ease, transform 0.1s ease;
-    }
-    #start-game-btn:hover {
-        transform: translateY(-2px);
-    }
-    .coming-soon-text { margin-top: 25px; font-size: 1.1em; color: var(--ui-text-main); }
-
-
-    #orientation-warning {
-        background: #111; color: #fff; z-index: 200;
-        justify-content: center; align-items: center;
-        text-align: center; font-size: 18px;
-        flex-direction: column;
-    }
-    #orientation-warning p { font-size: 2em; margin-bottom: 20px; }
-
-
-    /* UI element positioning */
-    #score {
-      position: absolute;
-      top: 90px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--ui-score-bg);
-      color: var(--ui-text-main);
-      padding: 10px 20px;
-      font-weight: bold;
-      border-radius: 25px;
-      font-size: 18px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      transition: background-color 0.5s ease, color 0.5s ease;
-    }
-    .action-button {
-      position: absolute;
-      bottom: 50px;
-      width: 90px;
-      height: 90px;
-      color: var(--ui-text-main);
-      border: 4px solid var(--button-border-color);
-      border-radius: 50%;
-      font-size: 22px;
-      font-weight: bold;
-      cursor: pointer;
-      z-index: 100;
-      box-shadow: 0 0 12px rgba(0,0,0,0.3);
-      -webkit-tap-highlight-color: transparent;
-      transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
-    }
-    #jumpButton {
-      right: 25px;
-    }
-    #duckButton {
-      left: 25px;
-    }
-    #gameOver-content { /* Content wrapper for dialog inside #gameOver */
-        background: var(--ui-gameover-bg);
-        color: var(--ui-text-main);
-        padding: 30px;
-        border-radius: 15px;
-        width: 250px; /* Fixed width for the dialog content */
-        box-shadow: 0 6px 12px rgba(0,0,0,0.4);
-    }
-    #gameOver h2 {
-        margin-top: 0;
-        color: var(--ui-gameover-h2);
-        font-size: 2em;
-        transition: color 0.5s ease;
-    }
-    #restartBtn {
-      padding: 12px 25px;
-      font-size: 16px;
-      background: var(--ui-button-bg);
-      color: var(--ui-text-main);
-      border: none;
-      border-radius: 20px;
-      cursor: pointer;
-      margin-top: 15px;
-      font-weight: bold;
-      transition: background-color 0.5s ease, color 0.5s ease;
-    }
-    #debuggerDisplay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 80px;
-        background-color: rgba(0, 128, 0, 0.7);
-        color: white;
-        font-family: 'Courier New', monospace;
-        font-size: 11px;
-        padding: 5px;
-        overflow: hidden;
-        white-space: pre-wrap;
-        z-index: 90;
-        pointer-events: none;
-        align-items: flex-start;
-        line-height: 1.2;
-    }
-  </style>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tarboush Runner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="game-container">
-    <canvas id="gameCanvas"></canvas>
-  </div>
 
-  <div id="characterSelectScreen">
-    <h1>لحّق إذا بتلحق</h1> <h2>اختر شخصيتك</h2> <div class="character-grid">
-      </div>
-    <button id="start-game-btn">ابدأ اللعب</button> <p class="coming-soon-text">مزيد من الشخصيات قريباً</p> </div>
-
-  <div id="gameOver">
-    <div id="gameOver-content"> <h2>انتهت اللعبة!</h2> <p>النتيجة النهائية: <span id="finalScore">0</span></p> <p>أفضل نتيجة: <span id="bestScore">0</span></p> <button id="restartBtn">العب مرة أخرى</button> </div>
-  </div>
-
-  <div id="ui-container"> <div id="score">نقاط: 0 ليرة سوري</div> </div>
-
-  <button id="jumpButton" class="action-button">نط</button> <button id="duckButton" class="action-button">طخّي</button> <div id="debuggerDisplay">Debugger: Initializing...</div>
-  
-  <div id="orientation-warning">
-    <div>
-        <p>🔄</p>
-        الرجاء تدوير جهازك إلى الوضع الأفقي للعب.
+    <div id="characterSelectScreen" class="game-screen">
+        <h2>Choose Your Hero</h2>
+        <div class="character-grid">
+            </div>
+        <button id="start-game-btn">Start Game</button>
+        <p class="coming-soon-text">More characters coming soon!</p>
     </div>
-  </div>
-  <script src="game.js"></script>
+
+    <div class="game-container game-screen">
+        <canvas id="gameCanvas"></canvas>
+        <div id="ui-container">
+            <div id="score">Score: <span id="currentScore">0</span></div>
+            <button id="jumpButton" class="action-button">نط</button>
+            <button id="duckButton" class="action-button">طخّي</button>
+        </div>
+        <div id="debuggerDisplay">Debugger: Initializing…</div>
+    </div>
+
+    <div id="gameOver" class="game-screen">
+        <div id="gameOver-content">
+            <h2>GAME OVER!</h2>
+            <p>Score: <span id="finalScore">0</span></p>
+            <p>Best: <span id="bestScore">0</span></p>
+            <button id="restartBtn">Play Again</button>
+        </div>
+    </div>
+
+    <div id="orientation-warning" class="game-screen">
+        <p>Please rotate your device to landscape mode!</p>
+        <p>(Or widen your browser window)</p>
+    </div>
+
+    <script src="game.js"></script>
 </body>
 </html>
