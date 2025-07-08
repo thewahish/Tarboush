@@ -1,253 +1,402 @@
 :root {
-    /* Syrian Flag Colors (Example - adjust as needed, these are crucial for your theme) */
-    --syrian-green: #007A3D;
-    --revolutionary-red: #CE1126;
-    --syrian-white: #FFFFFF;
-    --syrian-black: #000000;
+    /* Official Syrian Identity Color Palette */
+    --forest-primary: #42B177;
+    --forest-secondary: #054239;
+    --forest-dark: #002623;
+    --golden-wheat-primary: #edebe0;
+    --golden-wheat-secondary: #b9a779;
+    --golden-wheat-dark: #988561;
+    --deep-umber-primary: #6B2F2A;
+    --deep-umber-secondary: #4A1F1E;
+    --deep-umber-dark: #250F14;
+    --charcoal-primary: #ffffff;
+    --charcoal-secondary: #3d3a3b;
+    --charcoal-dark: #161616;
 
-    /* Day Mode Colors (Default) */
-    --bg-color-main: #E0FFFF; /* Light background for body */
-    --canvas-bg-color: #87CEEB; /* Sky Blue */
-    --ground-fill-color: #A0522D; /* Sienna */
+    /* Day Mode - Clean & Elegant */
+    --bg-color-main: #edebe0;
+    --canvas-bg-color: #42B177;
+    --ground-fill-color: #b9a779;
+    --ground-shadow: #988561;
 
-    --ui-score-bg: rgba(0, 0, 0, 0.7);
-    --ui-button-bg: var(--syrian-green);
-    --ui-gameover-bg: rgba(0,0,0,0.85);
-    --ui-gameover-h2: var(--revolutionary-red);
-    --ui-text-main: var(--syrian-white);
+    --ui-score-bg: #988561;
+    --ui-button-bg: #054239;
+    --ui-gameover-bg: #42B177;
+    --ui-gameover-h2: #edebe0;
+    --ui-text-main: #edebe0;
+    --ui-text-dark: #054239;
 
-    --button-border-color: var(--syrian-white);
-    --canvas-border-color: var(--syrian-black);
+    --button-border-color: #b9a779;
+    --canvas-border-color: #988561;
 }
 
-/* Night Mode Overrides */
+/* Night Mode - Sophisticated Dark */
 body.night-mode {
-    --bg-color-main: #111122; /* Dark background for body */
-    --canvas-bg-color: #0F0F28; /* Very dark blue */
-    --ground-fill-color: #5A2C10; /* Darker brown */
+    --bg-color-main: #161616;
+    --canvas-bg-color: #054239;
+    --ground-fill-color: #6B2F2A;
+    --ground-shadow: #4A1F1E;
 
-    --ui-score-bg: rgba(255, 255, 255, 0.2);
-    --ui-button-bg: #004D27; /* Darker Green */
-    --ui-gameover-bg: rgba(255,255,255,0.2);
-    --ui-gameover-h2: #FF667A; /* Lighter Red */
-    --ui-text-main: #CCCCCC;
-
-    /* Fixed colors remain the same for night mode */
+    --ui-score-bg: #b9a779;
+    --ui-button-bg: #002623;
+    --ui-gameover-bg: #054239;
+    --ui-gameover-h2: #b9a779;
+    --ui-text-main: #edebe0;
+    --ui-text-dark: #054239;
 }
 
 html, body {
-  margin: 0; padding: 0;
-  /* Changed from overflow: hidden; */
-  overflow-x: hidden; /* Prevent horizontal scrolling */
-  overflow-y: auto; /* Allow vertical scrolling if needed, overridden by .game-screen below */
-  background: var(--bg-color-main);
-  font-family: 'Helvetica Neue', Arial, sans-serif;
-  height: 100%;
-  touch-action: manipulation; /* Allows faster touch responses for buttons */
-  transition: background-color 0.5s ease;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: var(--bg-color-main);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    height: 100%;
+    touch-action: manipulation;
+    transition: background 0.5s ease;
 }
 
-/* --- Base display properties for all major UI components (JS will control display:none/flex/block) --- */
-/* All main screens and containers will be positioned absolutely to overlap */
-.game-screen, #debuggerDisplay { /* Unified class for main screens */
+.game-screen {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     box-sizing: border-box;
-    display: none; /* Hidden by default, JS will show what's needed */
+    display: none;
 }
 
-/* Specific display types when they are made visible by JS (to ensure correct layout) */
-/* The game-container, gameOver, and orientation-warning should usually fill the screen without scrolling */
-.game-container, #gameOver, #orientation-warning {
-    overflow: hidden; /* Prevent scrolling for these game screens */
+.game-container {
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
 }
-.game-container { justify-content: center; align-items: center; }
-#ui-container { justify-content: center; align-items: center; pointer-events: none; }
-.action-button { justify-content: center; align-items: center; pointer-events: auto; }
-#debuggerDisplay { align-items: flex-start; text-align: left; }
+
+#ui-container {
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+.action-button {
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+}
 
 #characterSelectScreen {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
     text-align: center;
-    padding-top: 50px; /* Default */
-    overflow-y: auto; /* Enable scrolling for character select screen if content overflows */
-    -webkit-overflow-scrolling: touch; /* Smoother scrolling on iOS */
-}
-/* Responsive padding for character select screen */
-@media (max-height: 600px) { /* Adjust padding for shorter screens */
-    #characterSelectScreen {
-        padding-top: 20px;
-    }
+    padding-top: 30px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--bg-color-main);
 }
 
+#gameOver {
+    justify-content: center;
+    align-items: center;
+    pointer-events: auto;
+    z-index: 200;
+    overflow: hidden;
+}
+
+#orientation-warning {
+    background: #111;
+    color: #fff;
+    z-index: 200;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-size: 18px;
+    flex-direction: column;
+}
+
+/* Character Select Styling - Official Syrian Colors */
+#characterSelectScreen h1 {
+    font-size: clamp(2.5em, 8vw, 3.5em);
+    margin-bottom: 15px;
+    color: var(--forest-secondary);
+    text-shadow: none;
+    font-weight: 300;
+    font-family: 'Georgia', serif;
+}
 
 #characterSelectScreen h2 {
-    font-size: clamp(1.8em, 5vw, 2.5em); /* Responsive font size */
-    margin-bottom: 25px; /* Slightly less margin */
-    color: var(--revolutionary-red);
+    font-size: clamp(1.5em, 5vw, 2em);
+    margin-bottom: 25px;
+    color: var(--golden-wheat-dark);
+    text-shadow: none;
+    font-weight: 400;
 }
+
 .character-grid {
     display: flex;
-    flex-direction: column; /* Stack items vertically */
-    align-items: center; /* Center items horizontally */
-    gap: 12px; /* Slightly less spacing between items for denser look */
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
     margin-bottom: 30px;
-    max-width: 320px; /* Slightly wider max-width for better use of space */
-    width: 90%; /* Still takes 90% of parent width, ensuring responsiveness */
-    padding: 0 15px; /* Add some horizontal padding to the grid itself */
-    box-sizing: border-box; /* Include padding in width calculation */
+    max-width: 350px;
+    width: 90%;
+    padding: 0 15px;
+    box-sizing: border-box;
 }
+
 .character-slot {
-    background: rgba(0,0,0,0.5); border-radius: 12px; padding: 12px 15px;
+    background: var(--golden-wheat-primary);
+    border-radius: 12px;
+    padding: 18px 24px;
     display: flex;
     align-items: center;
     width: 100%;
-    color: var(--syrian-white); font-weight: bold; font-size: clamp(0.9em, 4vw, 1.1em);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    transition: background-color 0.3s ease, transform 0.1s ease;
+    color: var(--charcoal-secondary);
+    font-weight: 400;
+    font-size: clamp(1em, 4vw, 1.1em);
+    box-shadow: 0 2px 8px rgba(5, 66, 57, 0.15);
+    transition: all 0.3s ease;
     text-align: left;
     cursor: default;
+    border: 1px solid var(--golden-wheat-secondary);
 }
+
 .character-slot.available {
-    background: var(--syrian-green); cursor: pointer;
+    background: var(--forest-primary);
+    cursor: pointer;
+    border: 2px solid var(--golden-wheat-secondary);
+    box-shadow: 0 4px 12px rgba(5, 66, 57, 0.25);
+    color: var(--golden-wheat-primary);
 }
-.character-slot.available:hover, .character-slot.selected {
-    transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-    background: var(--revolutionary-red);
+
+.character-slot.available:hover,
+.character-slot.selected {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(185, 167, 121, 0.3);
+    background: var(--golden-wheat-secondary);
+    border: 2px solid var(--forest-secondary);
+    color: var(--forest-secondary);
 }
+
 .character-slot.grayed-out {
-    background: #555; opacity: 0.7;
+    background: #988561;
+    opacity: 0.8;
+    border: 1px solid #3d3a3b;
+    color: #edebe0;
+    position: relative;
 }
+
+.character-slot.grayed-out::after {
+    content: '✗';
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    color: #CE1126;
+    font-size: 1.8em;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
 .character-slot img {
-    width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--syrian-white);
-    margin-right: 12px;
+    width: 55px;
+    height: 55px;
+    border-radius: 8px;
+    border: 2px solid var(--golden-wheat-secondary);
+    margin-right: 15px;
     flex-shrink: 0;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
+
 .character-slot.grayed-out img {
-    filter: grayscale(100%); opacity: 0.6;
+    filter: grayscale(100%);
+    opacity: 0.5;
 }
-.character-slot p { margin: 0; flex-grow: 1; }
+
+.character-slot p {
+    margin: 0;
+    flex-grow: 1;
+}
+
 #start-game-btn {
-    padding: 12px 25px; font-size: clamp(1.2em, 5vw, 1.5em); background: var(--revolutionary-red);
-    color: var(--syrian-white); border: none; border-radius: 25px; cursor: pointer;
-    font-weight: bold; box-shadow: 0 6px 12px rgba(0,0,0,0.3);
-    transition: background-color 0.3s ease, transform 0.1s ease;
+    padding: 16px 40px;
+    font-size: clamp(1.2em, 5vw, 1.4em);
+    background: var(--golden-wheat-secondary);
+    color: var(--forest-secondary);
+    border: 2px solid var(--forest-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    box-shadow: 0 4px 12px rgba(5, 66, 57, 0.2);
+    transition: all 0.3s ease;
+    text-shadow: none;
+    font-family: inherit;
 }
+
 #start-game-btn:hover {
     transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(5, 66, 57, 0.3);
+    background: var(--forest-secondary);
+    color: var(--golden-wheat-primary);
 }
+
 .coming-soon-text {
-    font-size: clamp(0.9em, 3.5vw, 1.1em);
-    margin-top: 15px;
-    color: var(--ui-text-main);
+    font-size: clamp(0.9em, 3.5vw, 1em);
+    margin-top: 20px;
+    color: var(--charcoal-secondary);
+    opacity: 0.8;
+    font-weight: 400;
 }
 
-
-#orientation-warning {
-    background: #111; color: #fff; z-index: 200;
-    justify-content: center; align-items: center;
-    text-align: center; font-size: 18px;
-    flex-direction: column;
-}
-#orientation-warning p { font-size: 2em; margin-bottom: 20px; }
-
-
-/* UI element positioning */
+/* UI Elements - Elegant & Clean */
 #score {
-  position: absolute;
-  top: 90px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--ui-score-bg);
-  color: var(--ui-text-main);
-  padding: 10px 20px;
-  font-weight: bold;
-  border-radius: 25px;
-  font-size: 18px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  transition: background-color 0.5s ease, color 0.5s ease;
-  pointer-events: auto; /* Allow interaction with score for debugging if needed */
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ui-score-bg);
+    color: var(--ui-text-dark);
+    padding: 12px 24px;
+    font-weight: 500;
+    border-radius: 6px;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(5, 66, 57, 0.15);
+    transition: all 0.5s ease;
+    border: 1px solid var(--forest-secondary);
+    backdrop-filter: none;
+    text-shadow: none;
+    font-family: 'Georgia', serif;
 }
+
 .action-button {
-  position: absolute;
-  bottom: 30px; /* Reduced from 50px */
-  width: 75px; /* Reduced from 90px */
-  height: 75px; /* Reduced from 90px */
-  color: var(--ui-text-main);
-  background-color: var(--ui-button-bg);
-  border: 4px solid var(--button-border-color);
-  border-radius: 50%;
-  font-size: 20px; /* Slightly reduced font size */
-  font-weight: bold;
-  cursor: pointer;
-  z-index: 100;
-  box-shadow: 0 0 12px rgba(0,0,0,0.3);
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.5s ease, color 0.5s ease, border-color 0.5s ease;
+    position: absolute;
+    bottom: 32px;
+    width: 72px;
+    height: 72px;
+    color: var(--ui-text-main);
+    background: var(--ui-button-bg);
+    border: 2px solid var(--button-border-color);
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    z-index: 100;
+    box-shadow: 0 3px 10px rgba(5, 66, 57, 0.2);
+    -webkit-tap-highlight-color: transparent;
+    transition: all 0.3s ease;
+    text-shadow: none;
+    font-family: inherit;
 }
+
 .action-button:active {
     transform: scale(0.95);
+    box-shadow: 0 2px 6px rgba(5, 66, 57, 0.3);
 }
+
+.action-button:hover {
+    background: var(--golden-wheat-secondary);
+    transform: translateY(-2px);
+    color: var(--forest-secondary);
+    border-color: var(--forest-secondary);
+}
+
 #jumpButton {
-  right: 20px; /* Reduced from 25px */
+    right: 24px;
 }
+
 #duckButton {
-  left: 20px; /* Reduced from 25px */
+    left: 24px;
 }
+
 #gameOver-content {
     background: var(--ui-gameover-bg);
     color: var(--ui-text-main);
-    padding: 30px;
-    border-radius: 15px;
-    width: 250px;
+    padding: 32px;
+    border-radius: 12px;
+    width: 280px;
     text-align: center;
-    box-shadow: 0 6px 12px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 24px rgba(5, 66, 57, 0.3);
+    border: 2px solid var(--golden-wheat-secondary);
+    backdrop-filter: none;
 }
+
 #gameOver h2 {
     margin-top: 0;
     color: var(--ui-gameover-h2);
     font-size: 2em;
     transition: color 0.5s ease;
+    text-shadow: none;
+    font-weight: 300;
+    font-family: 'Georgia', serif;
 }
+
 #restartBtn {
-  padding: 12px 25px;
-  font-size: 16px;
-  background: var(--ui-button-bg);
-  color: var(--ui-text-main);
-  border: none;
-  border-radius: 20px;
-  cursor: pointer;
-  margin-top: 15px;
-  font-weight: bold;
-  transition: background-color 0.5s ease, color 0.5s ease;
+    padding: 14px 28px;
+    font-size: 16px;
+    background: var(--golden-wheat-secondary);
+    color: var(--forest-secondary);
+    border: 2px solid var(--forest-secondary);
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 20px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-shadow: none;
 }
+
 #restartBtn:hover {
-    background-color: var(--revolutionary-red);
-}
-#debuggerDisplay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 80px;
-    background-color: rgba(0, 128, 0, 0.7);
-    color: white;
-    font-family: 'Courier New', monospace;
-    font-size: 11px;
-    padding: 5px;
-    overflow: hidden; /* Ensure text wraps but doesn't scroll within the small debugger box */
-    white-space: pre-wrap;
-    z-index: 90;
-    pointer-events: none; /* Allows clicks to pass through */
-    align-items: flex-start;
-    line-height: 1.2;
-    /* This will be managed by JS display:flex */
+    background: var(--forest-secondary);
+    transform: translateY(-2px);
+    color: var(--golden-wheat-primary);
 }
 
 canvas {
-    display: block; /* Remove extra space below canvas */
+    display: block;
     border: 2px solid var(--canvas-border-color);
-    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+    border-radius: 8px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 16px rgba(5, 66, 57, 0.2);
+}
+
+/* Animations */
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.character-slot.selected {
+    animation: pulse 2s infinite;
+}
+
+#start-game-btn:hover {
+    animation: bounce 1s;
+}
+
+/* Responsive Design */
+@media (max-height: 600px) {
+    #characterSelectScreen {
+        padding-top: 15px;
+    }
+    .character-grid {
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .action-button {
+        width: 70px;
+        height: 70px;
+        font-size: 16px;
+    }
+    #score {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
 }
