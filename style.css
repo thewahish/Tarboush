@@ -1,5 +1,5 @@
 :root {
-    /* Syrian Flag Colors (Example - adjust as needed) */
+    /* Syrian Flag Colors (Example - adjust as needed, these are crucial for your theme) */
     --syrian-green: #007A3D;
     --revolutionary-red: #CE1126;
     --syrian-white: #FFFFFF;
@@ -63,25 +63,27 @@ html, body {
 
 
 #characterSelectScreen h2 {
-    font-size: 2.2em; margin-bottom: 30px; color: var(--revolutionary-red);
+    font-size: clamp(1.8em, 5vw, 2.5em); /* Responsive font size */
+    margin-bottom: 25px; /* Slightly less margin */
+    color: var(--revolutionary-red);
 }
 .character-grid {
     display: flex;
     flex-direction: column; /* Stack items vertically */
     align-items: center; /* Center items horizontally */
-    gap: 15px; /* Spacing between list items */
+    gap: 12px; /* Slightly less spacing between items for denser look */
     margin-bottom: 30px;
-    max-width: 300px; /* Max width for each item */
-    width: 90%; /* Occupy most of the width */
-    margin-left: auto; /* Center grid */
-    margin-right: auto;
+    max-width: 320px; /* Slightly wider max-width for better use of space */
+    width: 90%; /* Still takes 90% of parent width, ensuring responsiveness */
+    padding: 0 15px; /* Add some horizontal padding to the grid itself */
+    box-sizing: border-box; /* Include padding in width calculation */
 }
 .character-slot {
-    background: rgba(0,0,0,0.5); border-radius: 15px; padding: 15px;
+    background: rgba(0,0,0,0.5); border-radius: 12px; padding: 12px 15px;
     display: flex;
     align-items: center;
     width: 100%;
-    color: var(--syrian-white); font-weight: bold; font-size: 1.1em;
+    color: var(--syrian-white); font-weight: bold; font-size: clamp(0.9em, 4vw, 1.1em);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     transition: background-color 0.3s ease, transform 0.1s ease;
     text-align: left;
@@ -98,8 +100,8 @@ html, body {
     background: #555; opacity: 0.7;
 }
 .character-slot img {
-    width: 60px; height: 60px; border-radius: 50%; border: 2px solid var(--syrian-white);
-    margin-right: 15px;
+    width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--syrian-white);
+    margin-right: 12px;
     flex-shrink: 0;
 }
 .character-slot.grayed-out img {
@@ -107,15 +109,19 @@ html, body {
 }
 .character-slot p { margin: 0; flex-grow: 1; }
 #start-game-btn {
-    padding: 15px 30px; font-size: 1.5em; background: var(--revolutionary-red);
-    color: var(--syrian-white); border: none; border-radius: 30px; cursor: pointer;
+    padding: 12px 25px; font-size: clamp(1.2em, 5vw, 1.5em); background: var(--revolutionary-red);
+    color: var(--syrian-white); border: none; border-radius: 25px; cursor: pointer;
     font-weight: bold; box-shadow: 0 6px 12px rgba(0,0,0,0.3);
     transition: background-color 0.3s ease, transform 0.1s ease;
 }
 #start-game-btn:hover {
     transform: translateY(-2px);
 }
-.coming-soon-text { margin-top: 25px; font-size: 1.1em; color: var(--ui-text-main); }
+.coming-soon-text {
+    font-size: clamp(0.9em, 3.5vw, 1.1em);
+    margin-top: 15px;
+    color: var(--ui-text-main);
+}
 
 
 #orientation-warning {
