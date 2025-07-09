@@ -7,7 +7,7 @@ class Game {
         this.gameRunning = false;
         this.score = 0;
         this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
-        this.speed = 3; // Adjusted for balanced start
+        this.speed = 3.5; // Adjusted for balanced start
         this.distance = 0;
         this.lastScoredDistance = 0;
         this.steps = 0; // Track steps for new scoring system
@@ -177,12 +177,21 @@ class Game {
         this.setupCanvas();
         this.obstacles = [];
         this.distanceToNextSpawn = 0;
-        // Updated obstacle patterns for shorter character
+        // Updated obstacle patterns with groups and varied heights
         this.obstaclePatterns = [
-            { type: 'cactus', width: 24, height: 40, yOffset: 0 },    // Slightly smaller
-            { type: 'rock', width: 30, height: 20, yOffset: 0 },     // Slightly smaller
-            { type: 'bird', width: 35, height: 20, yOffset: 45 },    // Lower flying height
-            { type: 'missile', width: 50, height: 15, yOffset: 25 }  // Lower and smaller
+            // Single obstacles
+            { type: 'cactus', width: 24, height: 40, yOffset: 0, group: 'single' },
+            { type: 'rock', width: 30, height: 20, yOffset: 0, group: 'single' },
+            { type: 'bird', width: 35, height: 20, yOffset: 45, group: 'single' },
+            { type: 'bird', width: 35, height: 20, yOffset: 65, group: 'single' }, // Higher bird
+            { type: 'missile', width: 50, height: 15, yOffset: 25, group: 'single' },
+            { type: 'missile', width: 50, height: 15, yOffset: 40, group: 'single' }, // Higher missile
+            // Double obstacles
+            { type: 'cactus', width: 24, height: 40, yOffset: 0, group: 'double', count: 2, spacing: () => 50 + Math.random() * 50 },
+            { type: 'rock', width: 30, height: 20, yOffset: 0, group: 'double', count: 2, spacing: () => 50 + Math.random() * 50 },
+            // Mixed groups
+            { type: 'bird', width: 35, height: 20, yOffset: 45, group: 'mixed', follow: 'cactus', followOffset: () => 100 + Math.random() * 50 },
+            { type: 'missile', width: 50, height: 15, yOffset: 25, group: 'mixed', follow: 'rock', followOffset: () => 100 + Math.random() * 50 }
         ];
         this.clouds = this.createClouds();
 
@@ -466,7 +475,7 @@ class Game {
   startGame() {
       this.gameRunning = true;
       this.score = 0;
-      this.speed = 3; // Balanced start speed
+      this.speed = 3.5; // Balanced start speed
       this.distance = 0;
       this.lastScoredDistance = 0;
       this.steps = 0; // Reset steps counter
@@ -507,27 +516,52 @@ class Game {
   }
 
   setNextSpawnDistance() {
-      this.distanceToNextSpawn = this.canvas.width / 1.5 + Math.random() * this.canvas.width / 3;
+      this.distanceToNextSpawn = this.canvas.width / 2 + Math.random() * this.canvas.width / 2; // Wider range for unpredictability
   }
 
   spawnObstacle() {
-      const obstacleData = this.obstaclePatterns[Math.floor(Math.random() * this.obstaclePatterns.length)];
-      const obstacle = {
-          x: this.canvas.width + 10,
-          y: this.groundY - obstacleData.height - obstacleData.yOffset,
-          width: obstacleData.width,
-          height: obstacleData.height,
-          type: obstacleData.type,
-          yOffset: obstacleData.yOffset,
-          hitbox: {
-              x_offset: 2,
-              y_offset: 2,
-              width: obstacleData.width - 4,
-              height: obstacleData.height - 4
-          },
-          scored: false
+      // Choose pattern type based on probability
+      const rand = Math.random();
+      let pattern;
+      if (rand < 0.5) {
+          // Single obstacle (50%)
+          pattern = this.obstaclePatterns.filter(p => p.group === 'single')[Math.floor(Math.random() * 6)];
+      } else if (rand < 0.8) {
+          // Double obstacle (30%)
+          pattern = this.obstaclePatterns.filter(p => p.group === 'double')[Math.floor(Math.random() * 2)];
+      } else {
+          // Mixed group (20%)
+          pattern = this.obstaclePatterns.filter(p => p.group === 'mixed')[Math.floor(Math.random() * 2)];
+      }
+
+      const createObstacle = (data, xOffset = 0) => {
+          return {
+              x: this.canvas.width + 10 + xOffset,
+              y: this.groundY - data.height - data.yOffset,
+              width: data.width,
+              height: data.height,
+              type: data.type,
+              yOffset: data.yOffset,
+              hitbox: {
+                  x_offset: 2,
+                  y_offset: 2,
+                  width: data.width - 4,
+                  height: data.height - 4
+              },
+              scored: false
+          };
       };
-      this.obstacles.push(obstacle);
+
+      if (pattern.group === 'single') {
+          this.obstacles.push(createObstacle(pattern));
+      } else if (pattern.group === 'double') {
+          this.obstacles.push(createObstacle(pattern));
+          this.obstacles.push(createObstacle(pattern, pattern.spacing()));
+      } else if (pattern.group === 'mixed') {
+          this.obstacles.push(createObstacle(pattern));
+          const followData = this.obstaclePatterns.find(p => p.type === pattern.follow && p.group === 'single');
+          this.obstacles.push(createObstacle(followData, pattern.followOffset()));
+      }
   }
 
   updateObstacles() {
@@ -574,7 +608,7 @@ class Game {
       const o_x = obstacle.x + obstacle.hitbox.x_offset;
       const o_y = obstacle.y + obstacle.hitbox.y_offset;
       const o_w = obstacle.hitbox.width;
-      const o_h = obstacle.hitbox.height; // Fixed: Added 'const'
+      const o_h = obstacle.hitbox.height;
 
       const collision = p_x < o_x + o_w &&
              p_x + p_w > o_x &&
@@ -692,12 +726,12 @@ class Game {
       }
 
       // Gradual speed increase - balanced progression
-      if (this.score >= 50 && this.score < 100 && this.speed < 4) {
-          this.speed = Math.min(this.speed + 0.002, 4);
-      } else if (this.score >= 100 && this.score < 200 && this.speed < 5) {
-          this.speed = Math.min(this.speed + 0.002, 5);
-      } else if (this.score >= 200 && this.speed < 6) {
-          this.speed = Math.min(this.speed + 0.002, 6);
+      if (this.score >= 50 && this.score < 100 && this.speed < 4.5) {
+          this.speed = Math.min(this.speed + 0.003, 4.5);
+      } else if (this.score >= 100 && this.score < 200 && this.speed < 5.5) {
+          this.speed = Math.min(this.speed + 0.003, 5.5);
+      } else if (this.score >= 200 && this.speed < 7) {
+          this.speed = Math.min(this.speed + 0.003, 7);
       }
   }
 
