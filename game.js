@@ -1,72 +1,76 @@
 class Game {
   constructor() {
-    // --- NEW: Debugger Setup - INITIALIZE FIRST ---
-    this.debuggerDisplay = document.getElementById('debuggerDisplay');
-    if (!this.debuggerDisplay) {
-        console.error("CRITICAL: Debugger display element #debuggerDisplay not found!");
-    }
-    this.updateDebugger("Initializing Game Class...");
-    
-    // Add a global error handler to catch any uncaught errors anywhere in the script
-    window.onerror = (message, source, lineno, colno, error) => {
-        const errorMsg = `Global Error: ${message} (Line: ${lineno})`;
-        this.updateDebugger(errorMsg);
-        console.error("Global JavaScript Error:", errorMsg, error);
-        this.gameRunning = false; // Halt the game if a critical global error occurs
-        this.updateUIVisibility(); // Ensure UI reflects halt
-        return true; // Prevent default browser error handling
-    };
-
     console.log("[Constructor DEBUG] Starting Game constructor."); 
 
-    try { // --- Start of the main try block for the constructor ---
-
-        // --- 1. Basic property initialization ---
-        this.gameRunning = false; // Game starts as not running, waiting for character select
+    try {
+        // Basic property initialization
+        this.gameRunning = false;
         this.score = 0;
         this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
-        this.speed = 4;
+        this.speed = 3; // Adjusted for balanced start
         this.distance = 0;
         this.lastScoredDistance = 0;
-        this.nextThemeToggleScore = 500; // Day/Night toggle every 500 points
+        this.steps = 0; // Track steps for new scoring system
+        this.nextThemeToggleScore = 200; // Day/Night toggle every 200 points
 
+        // Jump control variables - prevent double jumping
+        this.jumpPressed = false;
+        this.spacePressed = false;
+
+        // Player properties - Updated for shorter character
         this.player = {
-            x: 120, y: 0, width: 50, height: 70,
+            x: 120, y: 0, width: 48, height: 60, // Reduced from 50x70 to 48x60
             velY: 0, jumping: false, grounded: true, isDucking: false,
-            runHitbox: { x_offset: 8, y_offset: 8, width: 34, height: 62 },
-            duckHitbox: { x_offset: 8, y_offset: 35, width: 34, height: 35 }
+            runHitbox: { x_offset: 6, y_offset: 6, width: 36, height: 54 }, // Adjusted proportionally
+            duckHitbox: { x_offset: 6, y_offset: 25, width: 36, height: 35 }, // Adjusted for ducking
+            animFrame: 0,
+            animSpeed: 0.2
         };
 
         this.isNightMode = false;
-        this.particles = []; // For explosion effects
+        this.particles = [];
         
-        // Official Syrian Identity Color Themes
+        // Updated Syrian Identity Color Themes with pixel art character colors
         this.themeColors = {
             day: {
                 ground: '#b9a779', groundShadow: '#988561',
-                cloud: 'rgba(237, 235, 224, 0.9)', 
-                playerTarboush: '#054239', // Forest secondary
-                playerBody: '#edebe0', playerSkin: '#b9a779', playerDetail: '#3d3a3b',
-                playerMustache: '#988561',
-                obstacleGreen: '#42B177', obstacleBlack: '#3d3a3b', obstacleGrey: '#988561',
-                obstacleMissileFlame: '#b9a779', // Golden Wheat Secondary
-                sky: '#42B177', // Forest primary
-                coin: '#b9a779' // Golden Wheat Secondary
+                cloud: 'rgba(237, 235, 224, 0.7)', 
+                // Pixel art character colors
+                playerTarboush: '#054239',        // Dark green tarboush
+                playerTarboushTassel: '#FFD700', // Gold tassel
+                playerSkin: '#D4A574',           // Peachy tan skin
+                playerBeard: '#2C1810',          // Dark brown beard
+                playerThobe: '#F5F5F0',          // Off-white thobe
+                playerThobeDetails: '#6B2F2A',   // Maroon details
+                playerShoes: '#2C1810',          // Dark shoes
+                obstacleGreen: '#42B177', 
+                obstacleBlack: '#3C3C3C',        // Pixel art obstacle color
+                obstacleGrey: '#988561',
+                obstacleMissileFlame: '#b9a779',
+                sky: '#ffffff', // White background
+                coin: '#b9a779'
             },
             night: {
                 ground: '#6B2F2A', groundShadow: '#4A1F1E',
-                cloud: 'rgba(237, 235, 224, 0.4)',
-                playerTarboush: '#002623', // Forest dark
-                playerBody: '#edebe0', playerSkin: '#b9a779', playerDetail: '#edebe0',
-                playerMustache: '#988561',
-                obstacleGreen: '#054239', obstacleBlack: '#3d3a3b', obstacleGrey: '#6B2F2A',
-                obstacleMissileFlame: '#988561', // Golden Wheat Dark
-                sky: '#054239', // Forest secondary
-                coin: '#988561' // Golden Wheat Dark
+                cloud: 'rgba(237, 235, 224, 0.3)',
+                // Night mode character colors (slightly adjusted)
+                playerTarboush: '#002623',
+                playerTarboushTassel: '#B8860B', // Darker gold
+                playerSkin: '#C49464',           // Slightly darker skin
+                playerBeard: '#1C0F08',          // Darker beard
+                playerThobe: '#E5E5E0',          // Slightly darker thobe
+                playerThobeDetails: '#5B1F1A',   // Darker maroon
+                playerShoes: '#1C0F08',          // Darker shoes
+                obstacleGreen: '#054239', 
+                obstacleBlack: '#2C2C2C',        // Darker obstacle
+                obstacleGrey: '#6B2F2A',
+                obstacleMissileFlame: '#988561',
+                sky: '#f8f8f8',
+                coin: '#988561'
             }
         };
 
-        // Character definitions with SVG data URLs
+        // Character definitions
         this.characters = [
             { 
                 id: 'shami_abu_tarboush', 
@@ -133,7 +137,7 @@ class Game {
         ];
         this.selectedCharacterId = 'shami_abu_tarboush';
 
-        // --- 2. Get Canvas and Context ---
+        // Get Canvas and Context
         this.canvas = document.getElementById('gameCanvas');
         console.log("[Constructor DEBUG] Canvas element:", this.canvas);
         if (!this.canvas) throw new Error("Canvas element #gameCanvas not found!");
@@ -141,8 +145,7 @@ class Game {
         console.log("[Constructor DEBUG] Canvas context:", this.ctx);
         if (!this.ctx) throw new Error("Failed to get 2D rendering context for canvas.");
 
-        // --- 3. Get all relevant UI element references ---
-        // These must be retrieved before updateUIVisibility is called
+        // Get UI element references
         this.scoreDisplay = document.getElementById('score');
         if (!this.scoreDisplay) throw new Error("scoreDisplay element not found!");
         this.finalScoreDisplay = document.getElementById('finalScore');
@@ -170,57 +173,176 @@ class Game {
         this.loaderScreen = document.getElementById('loader');
         if (!this.loaderScreen) throw new Error("loaderScreen element not found!");
 
-        // --- 4. Game state dependent setup (uses elements gathered above) ---
+        // Game state setup
         this.setupCanvas();
         this.obstacles = [];
         this.distanceToNextSpawn = 0;
+        // Updated obstacle patterns for shorter character
         this.obstaclePatterns = [
-            { type: 'cactus', width: 25, height: 50, yOffset: 0 }, { type: 'rock', width: 35, height: 25, yOffset: 0 },
-            { type: 'bird', width: 40, height: 25, yOffset: 60 }, { type: 'missile', width: 60, height: 20, yOffset: 30 }
+            { type: 'cactus', width: 24, height: 40, yOffset: 0 },    // Slightly smaller
+            { type: 'rock', width: 30, height: 20, yOffset: 0 },     // Slightly smaller
+            { type: 'bird', width: 35, height: 20, yOffset: 45 },    // Lower flying height
+            { type: 'missile', width: 50, height: 15, yOffset: 25 }  // Lower and smaller
         ];
         this.clouds = this.createClouds();
 
-        // --- 5. Bind events (now all elements are available) ---
+        // Bind events
         this.bindEvents();
         
-        // --- 6. Initial UI state and rendering ---
+        // Initial UI state
         this.updateBestScoreDisplay();
-        this.setNextSpawnDistance(); // Sets distance for first obstacle spawn
+        this.setNextSpawnDistance();
         
-        this.currentGameState = 'loading'; // Game starts in loading state
-        this.updateUIVisibility(); // Adjusts UI based on initial state
+        this.currentGameState = 'loading';
+        this.updateUIVisibility();
         
-        // Hide loader after animation
+        // Handle loader animation
         const loaderCharacter = this.loaderScreen.querySelector('.character-enter');
         if(loaderCharacter) {
             loaderCharacter.addEventListener('animationend', () => {
-                this.loaderScreen.style.opacity = 0; // Fade out loader
+                this.loaderScreen.style.opacity = 0;
                 setTimeout(() => {
-                    this.loaderScreen.style.display = 'none'; // Hide after fade
-                    this.currentGameState = 'characterSelect'; // Transition to character select
-                    this.updateUIVisibility(); // Show character select screen
-                    this.renderCharacterSelectScreen(); // Render characters
-                }, 500); // Wait for fade out
+                    this.loaderScreen.style.display = 'none';
+                    this.currentGameState = 'characterSelect';
+                    this.updateUIVisibility();
+                    this.renderCharacterSelectScreen();
+                }, 500);
             });
         } else {
-            // Fallback if animation element not found or animation doesn't play
+            // Fallback
             this.currentGameState = 'characterSelect';
             this.updateUIVisibility();
             this.renderCharacterSelectScreen();
         }
 
-        this.gameLoop(); // Start the main loop (it will pause/unpause based on currentGameState)
-    } catch (e) { // --- END of the main try block for the constructor ---
-        console.error("Error during Game initialization (caught by constructor):", e);
-        this.updateDebugger(`CRITICAL ERROR during Game init: ${e.message}. Game stopped.`);
+        this.gameLoop();
+    } catch (e) {
+        console.error("Error during Game initialization:", e);
         this.gameRunning = false;
-        this.updateUIVisibility(); // Ensure UI reflects error state
+        this.updateUIVisibility();
     }
     console.log("[Constructor DEBUG] Constructor finished. Final gameRunning state:", this.gameRunning);
   }
 
+  bindEvents() {
+    // Fixed touch events for buttons
+    this.jumpButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.currentGameState === 'playing' && !this.jumpPressed) {
+            this.jumpRequested = true;
+            this.jumpPressed = true;
+        }
+    }, { passive: false });
+
+    this.jumpButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.jumpPressed = false;
+    }, { passive: false });
+
+    // Add click events as fallback
+    this.jumpButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.currentGameState === 'playing' && !this.jumpPressed) {
+            this.jumpRequested = true;
+        }
+    });
+
+    this.duckButton.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.currentGameState === 'playing') {
+            this.player.isDucking = true;
+        }
+    }, { passive: false });
+
+    this.duckButton.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (this.currentGameState === 'playing') {
+            this.player.isDucking = false;
+        }
+    }, { passive: false });
+
+    // Add click events as fallback for duck button
+    this.duckButton.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        if (this.currentGameState === 'playing') {
+            this.player.isDucking = true;
+        }
+    });
+
+    this.duckButton.addEventListener('mouseup', (e) => {
+        e.preventDefault();
+        if (this.currentGameState === 'playing') {
+            this.player.isDucking = false;
+        }
+    });
+
+    this.duckButton.addEventListener('mouseleave', (e) => {
+        if (this.currentGameState === 'playing') {
+            this.player.isDucking = false;
+        }
+    });
+
+    // Fixed keyboard events - prevent double jumping
+    document.addEventListener('keydown', (e) => {
+        if (this.currentGameState === 'playing') {
+            if ((e.code === 'Space' || e.code === 'ArrowUp') && !this.spacePressed) {
+                e.preventDefault();
+                this.jumpRequested = true;
+                this.spacePressed = true;
+            } else if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                this.player.isDucking = true;
+            }
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (this.currentGameState === 'playing') {
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                this.spacePressed = false;
+            } else if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                this.player.isDucking = false;
+            }
+        }
+    });
+
+    // Restart button
+    this.restartBtn.addEventListener('click', () => {
+        this.startGame();
+    });
+
+    // Window resize and orientation
+    window.addEventListener('resize', () => {
+        this.setupCanvas();
+        this.updateUIVisibility();
+    });
+
+    window.addEventListener('orientationchange', () => {
+        this.updateUIVisibility();
+    });
+
+    // Character selection
+    const characterGrid = this.characterSelectScreen.querySelector('.character-grid');
+    characterGrid.addEventListener('click', (event) => {
+        const slot = event.target.closest('.character-slot.available');
+        if (slot) {
+            const charId = slot.dataset.charId;
+            this.selectedCharacterId = charId;
+            characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
+            slot.classList.add('selected');
+        }
+    });
+  }
+
   setupCanvas() {
-    const desiredAspectRatio = 2.2; // Optimized for a wider landscape
+    const desiredAspectRatio = 2.2;
     const minPadding = 40; 
     const maxWidth = 900;
     const maxHeight = 400;
@@ -234,10 +356,11 @@ class Game {
         targetHeight = targetWidth / desiredAspectRatio;
     }
 
-    this.canvas.width = Math.max(targetWidth, 400); // Minimum sensible width
-    this.canvas.height = Math.max(targetHeight, 200); // Minimum sensible height
+    this.canvas.width = Math.max(targetWidth, 400);
+    this.canvas.height = Math.max(targetHeight, 200);
     
-    this.groundY = this.canvas.height - 60; // Adjusted ground height from 40 to 60 for larger character
+    // Adjusted ground position for shorter character
+    this.groundY = this.canvas.height - 50; // Reduced from 60 to 50
     this.player.y = this.groundY - this.player.height;
   }
 
@@ -259,7 +382,7 @@ class Game {
   _getColor(colorName) {
     const mode = this.isNightMode ? 'night' : 'day';
     const color = this.themeColors[mode][colorName];
-    return color || this.themeColors.day.sky; // Fallback to day sky color if color not found
+    return color || this.themeColors.day.sky;
   }
 
   toggleDayNight() {
@@ -268,51 +391,38 @@ class Game {
     this.updateScoreDisplay();
   }
 
-  updateDebugger(message) {
-    if (this.debuggerDisplay) {
-        const timestamp = new Date().toLocaleTimeString('en-US', { hour12: false });
-        this.debuggerDisplay.textContent = `[${timestamp}] ${message}`;
-    }
-  }
-
   updateUIVisibility() {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       
-      // Hide all main UI containers and screens first
+      // Hide all elements first
       this.gameContainer.style.display = 'none';
       this.uiContainer.style.display = 'none';
       this.jumpButton.style.display = 'none';
       this.duckButton.style.display = 'none';
-      this.debuggerDisplay.style.display = 'none';
       this.characterSelectScreen.style.display = 'none';
       this.gameOverScreen.style.display = 'none';
       this.orientationWarning.style.display = 'none';
-      this.loaderScreen.style.display = 'none'; // Ensure loader is hidden by default here
+      this.loaderScreen.style.display = 'none';
 
-      // Show elements based on current game state and orientation
+      // Show elements based on state and orientation
       if (this.currentGameState === 'loading') {
           this.loaderScreen.style.display = 'flex';
-      } else if (!isLandscape) { // Not loading, and in Portrait mode
+      } else if (!isLandscape) {
           this.orientationWarning.style.display = 'flex';
-      } else { // In Landscape mode
+      } else {
           if (this.currentGameState === 'playing') {
-              this.gameContainer.style.display = 'flex'; // Game canvas container
-              this.uiContainer.style.display = 'flex';   // UI (score, etc.)
-              this.scoreDisplay.style.display = 'block'; // Score is a child of uiContainer
-              this.jumpButton.style.display = 'flex';    // Action buttons
-              this.duckButton.style.display = 'flex';
-              this.debuggerDisplay.style.display = 'flex'; // Debugger
-              // Game over screen and char select screen remain hidden
-          } else if (this.currentGameState === 'gameOver') {
-              this.gameContainer.style.display = 'flex'; // Still show background canvas
-              this.uiContainer.style.display = 'flex';   // To show score below debugger
+              this.gameContainer.style.display = 'flex';
+              this.uiContainer.style.display = 'flex';
               this.scoreDisplay.style.display = 'block';
-              this.gameOverScreen.style.display = 'flex'; // Game Over dialog itself is now flex to center content
-              this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible
-              // Action buttons and char select remain hidden
+              this.jumpButton.style.display = 'flex';
+              this.duckButton.style.display = 'flex';
+          } else if (this.currentGameState === 'gameOver') {
+              this.gameContainer.style.display = 'flex';
+              this.uiContainer.style.display = 'flex';
+              this.scoreDisplay.style.display = 'block';
+              this.gameOverScreen.style.display = 'flex';
           } else if (this.currentGameState === 'characterSelect') {
-              this.characterSelectScreen.style.display = 'flex'; // Show character select
-              this.debuggerDisplay.style.display = 'flex'; // Keep debugger visible
+              this.characterSelectScreen.style.display = 'flex';
           }
       }
   }
@@ -336,12 +446,6 @@ class Game {
               if (char.id === this.selectedCharacterId) {
                   slot.classList.add('selected');
               }
-              slot.addEventListener('click', () => {
-                  this.selectedCharacterId = char.id;
-                  characterGrid.querySelectorAll('.character-slot').forEach(s => s.classList.remove('selected'));
-                  slot.classList.add('selected');
-                  this.startGame();
-              });
           } else {
               slot.classList.add('grayed-out');
           }
@@ -362,19 +466,22 @@ class Game {
   startGame() {
       this.gameRunning = true;
       this.score = 0;
-      this.speed = 4;
+      this.speed = 3; // Balanced start speed
       this.distance = 0;
       this.lastScoredDistance = 0;
-      this.nextThemeToggleScore = 500;
+      this.steps = 0; // Reset steps counter
+      this.nextThemeToggleScore = 200;
       this.player.y = this.groundY - this.player.height;
       this.player.velY = 0;
       this.player.grounded = true;
       this.player.isDucking = false;
       this.player.jumping = false;
       this.jumpRequested = false;
+      this.jumpPressed = false;
+      this.spacePressed = false;
       this.obstacles = [];
-      this.particles = []; // Clear particles on new game
-      this.clouds = this.createClouds(); // Recreate clouds for fresh positions
+      this.particles = [];
+      this.clouds = this.createClouds();
       this.setNextSpawnDistance();
       this.updateScoreDisplay();
       
@@ -390,7 +497,7 @@ class Game {
 
   updateScoreDisplay() {
       if (this.scoreDisplay) {
-          this.scoreDisplay.textContent = `نقاط: ${this.score} ليرة سوري`;
+          this.scoreDisplay.textContent = `نقاط: ${this.score}`;
       }
       if (this.score > this.bestScore) {
           this.bestScore = this.score;
@@ -400,24 +507,18 @@ class Game {
   }
 
   setNextSpawnDistance() {
-      this.distanceToNextSpawn = this.canvas.width / 2 + Math.random() * this.canvas.width / 4; // Shorter distance for initial spawning
+      this.distanceToNextSpawn = this.canvas.width / 1.5 + Math.random() * this.canvas.width / 3;
   }
 
   spawnObstacle() {
-      const obstacleTypes = [
-          { type: 'cactus', width: 25, height: 50, yOffset: 0 },
-          { type: 'rock', width: 35, height: 25, yOffset: 0 },
-          { type: 'bird', width: 40, height: 25, yOffset: 60 },
-          { type: 'missile', width: 60, height: 20, yOffset: 30 }
-      ];
-
-      const obstacleData = obstacleTypes[Math.floor(Math.random() * obstacleTypes.length)];
+      const obstacleData = this.obstaclePatterns[Math.floor(Math.random() * this.obstaclePatterns.length)];
       const obstacle = {
-          x: this.canvas.width + 10, // Spawn slightly off-screen
+          x: this.canvas.width + 10,
           y: this.groundY - obstacleData.height - obstacleData.yOffset,
           width: obstacleData.width,
           height: obstacleData.height,
           type: obstacleData.type,
+          yOffset: obstacleData.yOffset,
           hitbox: {
               x_offset: 2,
               y_offset: 2,
@@ -434,18 +535,18 @@ class Game {
           const obs = this.obstacles[i];
           obs.x -= this.speed;
 
-          // Scoring for passing obstacle
+          // Scoring - 10 points per obstacle
           if (!obs.scored && obs.x + obs.width < this.player.x) {
               this.score += 10;
               obs.scored = true;
               this.updateScoreDisplay();
           }
 
-          // Collision detection
+          // Enhanced collision detection - especially for flying objects
           if (this.checkCollision(this.player, obs)) {
               this.createExplosionParticles(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
               this.gameOver();
-              return; // Exit loop immediately after game over
+              return;
           }
 
           // Remove off-screen obstacles
@@ -454,11 +555,11 @@ class Game {
           }
       }
 
-      // Spawn next obstacle only if enough distance passed or no obstacles
+      // Spawn new obstacles
       if (this.obstacles.length === 0 || 
           (this.canvas.width - (this.obstacles.length > 0 ? this.obstacles[this.obstacles.length - 1].x : this.canvas.width)) >= this.distanceToNextSpawn) {
           this.spawnObstacle();
-          this.setNextSpawnDistance(); // Recalculate next spawn distance
+          this.setNextSpawnDistance();
       }
   }
 
@@ -473,12 +574,14 @@ class Game {
       const o_x = obstacle.x + obstacle.hitbox.x_offset;
       const o_y = obstacle.y + obstacle.hitbox.y_offset;
       const o_w = obstacle.hitbox.width;
-      const o_h = obstacle.hitbox.height;
+      const o_h = obstacle.hitbox.height; // Fixed: Added 'const'
 
-      return p_x < o_x + o_w &&
+      const collision = p_x < o_x + o_w &&
              p_x + p_w > o_x &&
              p_y < o_y + o_h &&
              p_y + p_h > o_y;
+
+      return collision;
   }
 
   createExplosionParticles(x, y) {
@@ -489,8 +592,8 @@ class Game {
               vx: (Math.random() - 0.5) * 10,
               vy: (Math.random() - 0.5) * 10 - 5,
               life: 60,
-              color: ['#FF4500', '#FFD700', '#FF6347', this._getColor('golden-wheat-secondary'), this._getColor('golden-wheat-primary')][Math.floor(Math.random() * 5)], // Using theme colors
-              size: 2 + Math.random() * 3 // Varied size
+              color: ['#FF4500', '#FFD700', '#FF6347', this._getColor('coin'), this._getColor('obstacleGreen')][Math.floor(Math.random() * 5)],
+              size: 2 + Math.random() * 3
           });
       }
   }
@@ -500,7 +603,7 @@ class Game {
           const particle = this.particles[i];
           particle.x += particle.vx;
           particle.y += particle.vy;
-          particle.vy += 0.4; // Gravity
+          particle.vy += 0.4;
           particle.life--;
 
           if (particle.life <= 0) {
@@ -512,9 +615,10 @@ class Game {
   gameOver() {
       this.gameRunning = false;
       this.currentGameState = 'gameOver';
-      this.updateScoreDisplay(); // Update final score display
-      this.updateBestScoreDisplay(); // Update best score display
-      this.updateUIVisibility(); // Show game over screen
+      this.finalScoreDisplay.textContent = this.score;
+      this.updateScoreDisplay();
+      this.updateBestScoreDisplay();
+      this.updateUIVisibility();
   }
 
   gameLoop() {
@@ -527,12 +631,11 @@ class Game {
 
   update() {
       // Player animation
-      const bodyHeight = this.player.isDucking ? this.player.duckHitbox.height : this.player.runHitbox.height; // Dynamic body height for drawing
-      this.player.animFrame = (this.player.animFrame + this.player.animSpeed) % 4; // Ensure animFrame loops 0-3
+      this.player.animFrame = (this.player.animFrame + this.player.animSpeed) % 4;
 
       // Player physics
       if (this.player.jumping) {
-          this.player.velY += 0.6; // Gravity
+          this.player.velY += 0.6;
           this.player.y += this.player.velY;
 
           if (this.player.y >= this.groundY - this.player.height) {
@@ -540,60 +643,68 @@ class Game {
               this.player.jumping = false;
               this.player.grounded = true;
               this.player.velY = 0;
-              this.player.animFrame = 0; // Reset animation frame on landing
+              this.player.animFrame = 0;
           }
       }
 
       if (this.jumpRequested && this.player.grounded) {
-          this.player.velY = -12;
+          this.player.velY = -14; // Increased for better obstacle clearance
           this.player.jumping = true;
           this.player.grounded = false;
           this.jumpRequested = false;
-          this.player.isDucking = false; // Stop ducking on jump
-          this.player.animFrame = 0; // Reset animation frame on jump
+          this.player.isDucking = false;
+          this.player.animFrame = 0;
       }
 
+      // Allow ducking in air for faster descent
       if (!this.player.grounded && this.player.isDucking) {
-          // Player can't duck in air, so stop ducking state
-          this.player.isDucking = false;
-          // Optionally add a slight downward boost if trying to duck in air for faster descent
-          // this.player.velY += 5;
+          this.player.velY += 1.5; // Reduced for smoother descent
       }
 
       // Update clouds
       this.clouds.forEach(cloud => {
           cloud.x -= cloud.speed;
           if (cloud.x + cloud.w < 0) {
-              cloud.x = this.canvas.width + Math.random() * 100; // Reposition off-screen right
-              cloud.y = 30 + Math.random() * (this.groundY / 3); // New random height
+              cloud.x = this.canvas.width + Math.random() * 100;
+              cloud.y = 30 + Math.random() * (this.groundY / 3);
           }
       });
 
-      // Update obstacles and particles
+      // Update game elements
       this.updateObstacles();
       this.updateParticles();
 
-      // Update score
+      // Update score - New scoring system
       this.distance += this.speed;
-      if (this.distance - this.lastScoredDistance >= 15) { // Score every 15 distance units for 1 point
-          this.score++;
-          this.lastScoredDistance = this.distance;
+      this.steps++;
+      
+      // 1 point every 50 steps
+      if (this.steps >= 50) {
+          this.score += 1;
+          this.steps = 0; // Reset step counter
           this.updateScoreDisplay();
-
-          if (this.score >= this.nextThemeToggleScore) {
-              this.toggleDayNight();
-              this.nextThemeToggleScore += 500; // Next toggle at +500 points
-          }
       }
 
-      // Increase speed gradually
-      this.speed += 0.0005; // Slower speed increase for more balanced game
+      // Auto day/night toggle every 200 points
+      if (this.score >= this.nextThemeToggleScore) {
+          this.toggleDayNight();
+          this.nextThemeToggleScore += 200; // Next toggle at +200 points
+      }
+
+      // Gradual speed increase - balanced progression
+      if (this.score >= 50 && this.score < 100 && this.speed < 4) {
+          this.speed = Math.min(this.speed + 0.002, 4);
+      } else if (this.score >= 100 && this.score < 200 && this.speed < 5) {
+          this.speed = Math.min(this.speed + 0.002, 5);
+      } else if (this.score >= 200 && this.speed < 6) {
+          this.speed = Math.min(this.speed + 0.002, 6);
+      }
   }
 
   draw() {
-      // Draw sky/background (solid color)
+      // Clear canvas with white background
       this.ctx.fillStyle = this._getColor('sky');
-      this.ctx.fillRect(0, 0, this.canvas.width, this.groundY);
+      this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
       // Draw ground with shadow
       this.ctx.fillStyle = this._getColor('groundShadow');
@@ -620,10 +731,10 @@ class Game {
       // Draw particles
       this.particles.forEach(particle => {
           this.ctx.save();
-          this.ctx.globalAlpha = particle.life / 60; // Life is 60 now
+          this.ctx.globalAlpha = particle.life / 60;
           this.ctx.fillStyle = particle.color;
           this.ctx.beginPath();
-          this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2); // Use particle.size
+          this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
           this.ctx.fill();
           this.ctx.restore();
       });
@@ -635,186 +746,243 @@ class Game {
   drawPlayer() {
       const p = this.player;
       const colors = this.isNightMode ? this.themeColors.night : this.themeColors.day;
-      const bodyHeight = p.isDucking ? p.duckHitbox.height : p.runHitbox.height; // Dynamic body height for drawing
-
+      
       this.ctx.save();
-
-      // Running animation for horizontal movement
-      const animOffset = p.grounded && !p.jumping && !p.isDucking ? 
-          Math.sin(p.animFrame * 0.8) * 2 : 0; // Slower bob
-
-      // Body (thobe)
-      this.ctx.fillStyle = colors.playerBody;
-      this.ctx.fillRect(p.x + 5, p.y + 20, p.width - 10, bodyHeight - 20 - (p.isDucking ? 10 : 0)); // Shorten body when ducking
-
-      // Head/face
-      this.ctx.fillStyle = colors.playerSkin;
-      this.ctx.beginPath();
-      this.ctx.arc(p.x + p.width / 2, p.y + 15, 12, 0, Math.PI * 2);
-      this.ctx.fill();
-
-      // Tarboush
-      this.ctx.fillStyle = colors.playerTarboush;
       
-      // Tarboush base
-      this.ctx.fillRect(p.x + p.width / 2 - 10, p.y - 5, 20, 15);
+      // Disable smoothing for pixel art style
+      this.ctx.imageSmoothingEnabled = false;
       
-      // Tarboush top part
-      this.ctx.beginPath();
-      this.ctx.moveTo(p.x + p.width / 2 - 8, p.y - 5);
-      this.ctx.lineTo(p.x + p.width / 2 + 8, p.y - 5);
-      this.ctx.lineTo(p.x + p.width / 2 + 6, p.y - 15);
-      this.ctx.lineTo(p.x + p.width / 2 - 6, p.y - 15);
-      this.ctx.closePath();
-      this.ctx.fill();
-
-      // Tarboush tassel
-      this.ctx.fillStyle = '#FFD700'; // Gold color for tassel
-      this.ctx.beginPath();
-      this.ctx.arc(p.x + p.width / 2 + 8, p.y - 10, 3, 0, Math.PI * 2);
-      this.ctx.fill();
-
-      // Eyes
-      this.ctx.fillStyle = colors.playerDetail;
-      this.ctx.beginPath();
-      this.ctx.arc(p.x + p.width / 2 - 4, p.y + 12, 1.5, 0, Math.PI * 2);
-      this.ctx.arc(p.x + p.width / 2 + 4, p.y + 12, 1.5, 0, Math.PI * 2);
-      this.ctx.fill();
-
-      // Mustache
-      this.ctx.fillStyle = colors.playerMustache;
-      this.ctx.fillRect(p.x + p.width / 2 - 6, p.y + 18, 12, 3);
-
-      // Arms
-      this.ctx.fillStyle = colors.playerSkin;
-      if (!p.isDucking) {
-          // Running arms (swinging)
-          this.ctx.fillRect(p.x + 2 + animOffset, p.y + 25 + Math.abs(animOffset), 8, 15); // Left arm
-          this.ctx.fillRect(p.x + p.width - 10 - animOffset, p.y + 25 + Math.abs(animOffset), 8, 15); // Right arm
+      // Animation frame for walking cycle (0-3)
+      const walkFrame = Math.floor(p.animFrame) % 4;
+      
+      // Base positions
+      const baseX = p.x;
+      const baseY = p.y;
+      
+      // Pixel art rendering function
+      const drawPixel = (x, y, w = 2, h = 2, color) => {
+          this.ctx.fillStyle = color;
+          this.ctx.fillRect(Math.floor(baseX + x), Math.floor(baseY + y), w, h);
+      };
+      
+      // Character scale (2x2 pixels for each "pixel")
+      const scale = 2;
+      
+      if (p.isDucking) {
+          this.drawDuckingCharacter(drawPixel, colors, scale);
+      } else if (p.jumping) {
+          this.drawJumpingCharacter(drawPixel, colors, scale);
       } else {
-          // Ducking arms
-          this.ctx.fillRect(p.x + 5, p.y + 25, 10, 8);
-          this.ctx.fillRect(p.x + p.width - 15, p.y + 25, 10, 8);
+          this.drawRunningCharacter(drawPixel, colors, scale, walkFrame);
       }
+      
+      this.ctx.restore();
+  }
+  
+  drawRunningCharacter(drawPixel, colors, scale, walkFrame) {
+      // TARBOUSH (Traditional Syrian cap) - Scaled down
+      drawPixel(6*scale, 1*scale, 10*scale, 5*scale, colors.playerTarboush);
+      drawPixel(8*scale, 0, 6*scale, 3*scale, colors.playerTarboush);
+      drawPixel(16*scale, 1*scale, 2*scale, 2*scale, colors.playerTarboushTassel);
+      
+      // HEAD & FACE (side profile) - Scaled down
+      drawPixel(6*scale, 6*scale, 8*scale, 6*scale, colors.playerSkin);
+      drawPixel(14*scale, 8*scale, 2*scale, 1*scale, colors.playerSkin);
+      drawPixel(11*scale, 8*scale, 1*scale, 1*scale, colors.playerBeard);
+      
+      // BEARD & MUSTACHE - Scaled down
+      drawPixel(4*scale, 11*scale, 6*scale, 4*scale, colors.playerBeard);
+      drawPixel(8*scale, 10*scale, 4*scale, 2*scale, colors.playerBeard);
+      drawPixel(11*scale, 10*scale, 3*scale, 1*scale, colors.playerBeard);
+      
+      // THOBE (Traditional robe) - Scaled down
+      drawPixel(3*scale, 15*scale, 12*scale, 16*scale, colors.playerThobe);
+      drawPixel(9*scale, 18*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(9*scale, 21*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(9*scale, 24*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      
+      // ARMS - Animated based on walk cycle, scaled down
+      const armSwing = walkFrame < 2 ? 0 : 1*scale;
+      const armSwing2 = walkFrame < 2 ? 1*scale : 0;
+      
+      drawPixel(15*scale, 17*scale + armSwing, 3*scale, 6*scale, colors.playerSkin);
+      drawPixel(17*scale, 21*scale + armSwing, 3*scale, 3*scale, colors.playerSkin);
+      drawPixel(1*scale, 18*scale + armSwing2, 3*scale, 5*scale, colors.playerSkin);
+      
+      // LEGS - Animated walking cycle, scaled down
+      let rightLegY, leftLegY, rightFootY, leftFootY;
+      
+      if (walkFrame === 0) {
+          rightLegY = 31*scale; leftLegY = 32*scale;
+          rightFootY = 37*scale; leftFootY = 38*scale;
+      } else if (walkFrame === 1) {
+          rightLegY = 31.5*scale; leftLegY = 31.5*scale;
+          rightFootY = 37.5*scale; leftFootY = 37.5*scale;
+      } else if (walkFrame === 2) {
+          rightLegY = 32*scale; leftLegY = 31*scale;
+          rightFootY = 38*scale; leftFootY = 37*scale;
+      } else {
+          rightLegY = 31.5*scale; leftLegY = 31.5*scale;
+          rightFootY = 37.5*scale; leftFootY = 37.5*scale;
+      }
+      
+      drawPixel(11*scale, rightLegY, 2*scale, 6*scale, colors.playerSkin);
+      drawPixel(10*scale, rightFootY, 4*scale, 3*scale, colors.playerShoes);
+      drawPixel(8*scale, leftLegY, 2*scale, 6*scale, colors.playerSkin);
+      drawPixel(7*scale, leftFootY, 4*scale, 3*scale, colors.playerShoes);
+  }
+  
+  drawJumpingCharacter(drawPixel, colors, scale) {
+      // TARBOUSH
+      drawPixel(6*scale, 1*scale, 10*scale, 5*scale, colors.playerTarboush);
+      drawPixel(8*scale, 0, 6*scale, 3*scale, colors.playerTarboush);
+      drawPixel(16*scale, 1*scale, 2*scale, 2*scale, colors.playerTarboushTassel);
+      
+      // HEAD & FACE
+      drawPixel(6*scale, 6*scale, 8*scale, 6*scale, colors.playerSkin);
+      drawPixel(14*scale, 8*scale, 2*scale, 1*scale, colors.playerSkin);
+      drawPixel(11*scale, 8*scale, 1*scale, 1*scale, colors.playerBeard);
+      
+      // BEARD
+      drawPixel(4*scale, 11*scale, 6*scale, 4*scale, colors.playerBeard);
+      drawPixel(8*scale, 10*scale, 4*scale, 2*scale, colors.playerBeard);
+      drawPixel(11*scale, 10*scale, 3*scale, 1*scale, colors.playerBeard);
+      
+      // THOBE
+      drawPixel(3*scale, 15*scale, 12*scale, 16*scale, colors.playerThobe);
+      drawPixel(9*scale, 18*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(9*scale, 21*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(9*scale, 24*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      
+      // ARMS - Raised up for jumping, scaled down
+      drawPixel(15*scale, 14*scale, 3*scale, 5*scale, colors.playerSkin);
+      drawPixel(1*scale, 15*scale, 3*scale, 5*scale, colors.playerSkin);
+      
+      // LEGS - Bent/tucked for jumping, scaled down
+      drawPixel(9*scale, 33*scale, 3*scale, 5*scale, colors.playerSkin);
+      drawPixel(6*scale, 35*scale, 3*scale, 5*scale, colors.playerSkin);
+      drawPixel(8*scale, 36*scale, 4*scale, 2*scale, colors.playerShoes);
+      drawPixel(5*scale, 38*scale, 4*scale, 2*scale, colors.playerShoes);
+  }
+  
+  drawDuckingCharacter(drawPixel, colors, scale) {
+      // TARBOUSH - Lower due to ducking, scaled down
+      drawPixel(6*scale, 8*scale, 10*scale, 5*scale, colors.playerTarboush);
+      drawPixel(8*scale, 6*scale, 6*scale, 3*scale, colors.playerTarboush);
+      drawPixel(16*scale, 7*scale, 2*scale, 2*scale, colors.playerTarboushTassel);
+      
+      // HEAD - Lower position, scaled down
+      drawPixel(6*scale, 13*scale, 8*scale, 6*scale, colors.playerSkin);
+      drawPixel(14*scale, 15*scale, 2*scale, 1*scale, colors.playerSkin);
+      drawPixel(11*scale, 15*scale, 1*scale, 1*scale, colors.playerBeard);
+      
+      // BEARD - scaled down
+      drawPixel(4*scale, 18*scale, 6*scale, 4*scale, colors.playerBeard);
+      drawPixel(8*scale, 17*scale, 4*scale, 2*scale, colors.playerBeard);
+      drawPixel(11*scale, 17*scale, 3*scale, 1*scale, colors.playerBeard);
+      
+      // THOBE - Compressed/crouched, scaled down
+      drawPixel(3*scale, 22*scale, 12*scale, 12*scale, colors.playerThobe);
+      drawPixel(9*scale, 25*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(9*scale, 28*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      
+      // ARMS - Down for ducking, scaled down
+      drawPixel(15*scale, 24*scale, 3*scale, 5*scale, colors.playerSkin);
+      drawPixel(1*scale, 25*scale, 3*scale, 5*scale, colors.playerSkin);
+      
+      // LEGS - Crouched position, scaled down
+      drawPixel(7*scale, 34*scale, 5*scale, 5*scale, colors.playerSkin);
+      drawPixel(6*scale, 37*scale, 7*scale, 3*scale, colors.playerShoes);
+  }
 
-      // Legs
-      this.ctx.fillStyle = colors.playerDetail;
-      if (p.grounded && !p.isDucking) {
-           const legAnimOffset = Math.sin(p.animFrame * 1.5) * 4; // More pronounced leg movement
-           this.ctx.fillRect(p.x + p.width / 2 - 8, p.y + bodyHeight + 5 + legAnimOffset, 6, 15 - legAnimOffset);
-           this.ctx.fillRect(p.x + p.width / 2 + 2, p.y + bodyHeight + 5 - legAnimOffset, 6, 15 + legAnimOffset);
-        } else if (p.isDucking) {
-            // Ducking legs (squashed)
-            this.ctx.fillRect(p.x + p.width / 2 - 8, p.y + bodyHeight + 5, 6, 8);
-            this.ctx.fillRect(p.x + p.width / 2 + 2, p.y + bodyHeight + 5, 6, 8);
-        } else {
-            // Jumping legs (slightly bent)
-            this.ctx.fillRect(p.x + p.width / 2 - 8, p.y + p.height - 10, 6, 15);
-            this.ctx.fillRect(p.x + p.width / 2 + 2, p.y + p.height - 10, 6, 15);
-        }
-
-        this.ctx.restore();
-    }
-
-    drawObstacle(obs) {
-        const colors = this.isNightMode ? this.themeColors.night : this.themeColors.day;
-        this.ctx.save();
-        
-        switch (obs.type) {
-            case 'cactus':
-                this.ctx.fillStyle = colors.obstacleGreen;
-                this.ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-                // Cactus arms
-                this.ctx.fillRect(obs.x - 8, obs.y + 15, 12, 20);
-                this.ctx.fillRect(obs.x + obs.width - 4, obs.y + 10, 12, 15);
-                break;
-                
-            case 'rock':
-                this.ctx.fillStyle = colors.obstacleGrey;
-                this.ctx.beginPath();
-                this.ctx.moveTo(obs.x, obs.y + obs.height);
-                this.ctx.lineTo(obs.x + obs.width * 0.3, obs.y);
-                this.ctx.lineTo(obs.x + obs.width * 0.7, obs.y + obs.height * 0.2);
-                this.ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
-                this.ctx.closePath();
-                this.ctx.fill();
-                break;
-                
-            case 'bird':
-                this.ctx.fillStyle = colors.obstacleBlack;
-                // Bird body
-                this.ctx.beginPath();
-                this.ctx.ellipse(obs.x + obs.width / 2, obs.y + obs.height / 2, 
-                               obs.width / 3, obs.height / 3, 0, 0, Math.PI * 2);
-                this.ctx.fill();
-                // Wings (simple flapping animation)
-                const wingFlap = Math.sin(this.player.animFrame * 2) * 8; // Use player animFrame for sync
-                this.ctx.beginPath();
-                this.ctx.moveTo(obs.x, obs.y + obs.height / 2);
-                this.ctx.lineTo(obs.x + obs.width / 2, obs.y + wingFlap);
-                this.ctx.lineTo(obs.x + obs.width, obs.y + obs.height / 2);
-                this.ctx.fill();
-                break;
-                
-            case 'missile':
-                // Missile body
-                this.ctx.fillStyle = colors.obstacleGrey;
-                this.ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
-                
-                // Nose cone
-                this.ctx.beginPath();
-                this.ctx.moveTo(obs.x + obs.width, obs.y);
-                this.ctx.lineTo(obs.x + obs.width + 15, obs.y + obs.height / 2);
-                this.ctx.lineTo(obs.x + obs.width, obs.y + obs.height);
-                this.ctx.closePath();
-                this.ctx.fill();
-                
-                // Flame trail
-                this.ctx.fillStyle = colors.obstacleMissileFlame;
-                const flameLength = 20 + Math.sin(Date.now() * 0.02) * 5;
-                this.ctx.beginPath();
-                this.ctx.moveTo(obs.x, obs.y + obs.height / 2);
-                this.ctx.lineTo(obs.x - flameLength, obs.y + obs.height / 4);
-                this.ctx.lineTo(obs.x - flameLength * 0.7, obs.y + obs.height / 2);
-                this.ctx.lineTo(obs.x - flameLength, obs.y + obs.height * 3 / 4);
-                this.ctx.closePath();
-                this.ctx.fill();
-                break;
-        }
-        
-        this.ctx.restore();
-    }
+  drawObstacle(obs) {
+      const colors = this.isNightMode ? this.themeColors.night : this.themeColors.day;
+      this.ctx.save();
+      
+      // Disable smoothing for pixel art style
+      this.ctx.imageSmoothingEnabled = false;
+      
+      switch (obs.type) {
+          case 'cactus':
+              // Pixel art cactus - Syrian desert plant (scaled for shorter character)
+              this.ctx.fillStyle = colors.obstacleGreen;
+              this.ctx.fillRect(obs.x + 6, obs.y, 6, obs.height);
+              this.ctx.fillRect(obs.x, obs.y + 12, 10, 5);
+              this.ctx.fillRect(obs.x, obs.y + 8, 5, 12);
+              this.ctx.fillRect(obs.x + 14, obs.y + 16, 5, 12);
+              this.ctx.fillRect(obs.x + 17, obs.y + 12, 6, 5);
+              this.ctx.fillStyle = colors.obstacleBlack;
+              for(let i = 0; i < 3; i++) {
+                  this.ctx.fillRect(obs.x + 8, obs.y + 8 + i*8, 2, 2);
+                  this.ctx.fillRect(obs.x + 10, obs.y + 12 + i*8, 2, 2);
+              }
+              break;
+              
+          case 'rock':
+              // Pixel art rock formation (scaled for shorter character)
+              this.ctx.fillStyle = colors.obstacleGrey;
+              this.ctx.fillRect(obs.x, obs.y + obs.height - 6, obs.width, 6);
+              this.ctx.fillRect(obs.x + 3, obs.y + obs.height - 12, obs.width - 6, 6);
+              this.ctx.fillRect(obs.x + 6, obs.y, obs.width - 12, 6);
+              this.ctx.fillStyle = colors.obstacleBlack;
+              this.ctx.fillRect(obs.x + obs.width - 3, obs.y + obs.height - 9, 3, 9);
+              this.ctx.fillRect(obs.x + obs.width - 6, obs.y + obs.height - 6, 3, 6);
+              break;
+              
+          case 'bird':
+              // Pixel art flying bird (scaled for shorter character)
+              this.ctx.fillStyle = colors.obstacleBlack;
+              const wingFlap = Math.sin(this.player.animFrame * 3) > 0 ? 0 : 1;
+              
+              this.ctx.fillRect(obs.x + 12, obs.y + 6, 8, 5);
+              this.ctx.fillRect(obs.x + 20, obs.y + 5, 5, 3);
+              this.ctx.fillRect(obs.x + 25, obs.y + 6, 2, 1);
+              
+              if (wingFlap === 0) {
+                  this.ctx.fillRect(obs.x + 6, obs.y + 2, 10, 3);
+                  this.ctx.fillRect(obs.x + 16, obs.y + 3, 6, 3);
+                  this.ctx.fillRect(obs.x + 22, obs.y + 2, 6, 3);
+              } else {
+                  this.ctx.fillRect(obs.x + 6, obs.y + 10, 10, 3);
+                  this.ctx.fillRect(obs.x + 16, obs.y + 11, 6, 3);
+                  this.ctx.fillRect(obs.x + 22, obs.y + 10, 6, 3);
+              }
+              
+              this.ctx.fillStyle = colors.playerSkin;
+              this.ctx.fillRect(obs.x + 21, obs.y + 6, 1, 1);
+              break;
+              
+          case 'missile':
+              // Pixel art missile - modern threat (scaled for shorter character)
+              this.ctx.fillStyle = colors.obstacleGrey;
+              this.ctx.fillRect(obs.x + 8, obs.y + 5, 32, 6);
+              this.ctx.fillStyle = colors.obstacleBlack;
+              this.ctx.fillRect(obs.x + 40, obs.y + 3, 5, 3);
+              this.ctx.fillRect(obs.x + 45, obs.y + 5, 3, 3);
+              this.ctx.fillRect(obs.x + 48, obs.y + 6, 2, 3);
+              
+              this.ctx.fillStyle = colors.obstacleGrey;
+              this.ctx.fillRect(obs.x + 10, obs.y + 2, 5, 3);
+              this.ctx.fillRect(obs.x + 10, obs.y + 11, 5, 3);
+              
+              // Flame trail - animated (scaled for shorter character)
+              this.ctx.fillStyle = colors.obstacleMissileFlame;
+              const flameFrame = Math.floor(Date.now() * 0.01) % 3;
+              const flameLength = 12 + flameFrame * 2;
+              
+              this.ctx.fillRect(obs.x + 8 - flameLength, obs.y + 6, flameLength, 3);
+              this.ctx.fillRect(obs.x + 8 - flameLength + 2, obs.y + 5, flameLength - 3, 2);
+              this.ctx.fillRect(obs.x + 8 - flameLength + 2, obs.y + 9, flameLength - 3, 2);
+              
+              // Inner flame
+              this.ctx.fillStyle = '#FFD700';
+              this.ctx.fillRect(obs.x + 8 - flameLength/2, obs.y + 7, flameLength/2, 1);
+              break;
+      }
+      
+      this.ctx.restore();
+  }
 }
-
-// --- NEW: Konami Code Debugger Toggle ---
-// Keyboard sequence: Up, Up, Down, Down, Left, Right, Left, Right, B, A
-const konamiCode = [
-    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
-    'KeyB', 'KeyA'
-];
-let konamiCodePosition = 0;
-
-document.addEventListener('keydown', (e) => {
-    // Check if the current key matches the next key in the Konami Code sequence
-    if (e.code === konamiCode[konamiCodePosition]) {
-        konamiCodePosition++;
-        // If the entire sequence is matched
-        if (konamiCodePosition === konamiCode.length) {
-            konamiCodePosition = 0; // Reset for next time
-            const debuggerDisplay = document.getElementById('debuggerDisplay');
-            if (debuggerDisplay) {
-                // Toggle debugger visibility
-                debuggerDisplay.style.display = debuggerDisplay.style.display === 'flex' ? 'none' : 'flex';
-                // Optionally, log to console
-                console.log("Konami Code activated! Debugger toggled.");
-            }
-        }
-    } else {
-        konamiCodePosition = 0; // Reset if the sequence is broken
-    }
-});
-
 
 // Initialize game when page loads
 window.addEventListener('load', () => {
