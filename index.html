@@ -1,8 +1,12 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl"> <head>
+<html lang="ar" dir="rtl">
+<head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>لحّق إذا بتلحق</title> <link rel="stylesheet" href="style.css"> <script src="https://cdn.tailwindcss.com"></script>
+  <title>لحّق إذا بتلحق</title>
+  <link rel="preload" href="https://cdn.jsdelivr.net/gh/mazenovi/tarboush-assets/character_run.png" as="image">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
   <div id="loader" class="loader-screen">
@@ -16,11 +20,13 @@
   </div>
 
   <div id="characterSelectScreen" class="game-screen">
-    <h1>لحّق إذا بتلحق</h1>
-    <h2>اختر شخصيتك</h2>
-    <div class="character-grid"></div>
-    <button id="start-game-btn">ابدأ اللعب</button>
-    <p class="coming-soon-text">مزيد من الشخصيات قريباً</p>
+    <div class="menu-content">
+      <h1>لحّق إذا بتلحق</h1>
+      <h2>اختر شخصيتك</h2>
+      <div class="character-grid"></div>
+      <button id="start-game-btn">ابدأ اللعب</button>
+      <p class="coming-soon-text">مزيد من الشخصيات قريباً</p>
+    </div>
   </div>
 
   <div id="gameOver" class="game-screen">
@@ -41,9 +47,9 @@
   <div id="debuggerDisplay" class="game-screen">Debugger: Initializing...</div>
   
   <div id="orientation-warning" class="game-screen">
-    <div>
-        <p>🔄</p>
-        الرجاء تدوير جهازك إلى الوضع الأفقي للعب.
+    <div class="orientation-content">
+        <p class="rotate-icon">🔄</p>
+        <p>الرجاء تدوير جهازك إلى الوضع الأفقي للعب</p>
     </div>
   </div>
 
