@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nour Arafa - Medical Coding Professional</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+```
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        color: #2c3e50;
+        background: #ffffff;
+        min-height: 100vh;
+        overflow-x: hidden;
+    }
+
+    .background-animation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: -1;
+        opacity: 0.1;
+    }
+
+    .floating-medical-icon {
+        position: absolute;
+        color: #ffffff;
+        font-size: 2rem;
+        animation: float 6s ease-in-out infinite;
+    }
+
+    .floating-medical-icon:nth-child(1) {
+        top: 10%;
+        left: 10%;
+        animation-delay: 0s;
+    }
+
+    .floating-medical-icon:nth-child(2) {
+        top: 20%;
+        right: 15%;
+        animation-delay: 2s;
+    }
+
+    .floating-medical-icon:nth-child(3) {
+        bottom: 30%;
+        left: 20%;
+        animation-delay: 4s;
+    }
+
+    .floating-medical-icon:nth-child(4) {
+        bottom: 20%;
+        right: 10%;
+        animation-delay: 1s;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px) rotate(0deg); }
+        50% { transform: translateY(-20px) rotate(5deg); }
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 2rem auto;
+        background: #ffffff;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.1);
+        animation: slideInUp 1s ease-out;
+    }
+
+    @keyframes slideInUp {
+        from {
+            opacity: 0;
+            transform: translateY(50px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .header {
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        color: white;
+        padding: 3rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 255, 255, 0.05) 10px,
+            rgba(255, 255, 255, 0.05) 20px
+        );
+        animation: backgroundMove 20s linear infinite;
+    }
+
+    @keyframes backgroundMove {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .header-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .header h1 {
+        font-size: 3rem;
+        font-weight: 300;
+        margin-bottom: 0.5rem;
+        letter-spacing: 3px;
+        animation: fadeInScale 1.2s ease-out 0.3s both;
+    }
+
+    .subtitle {
+        font-size: 1.2rem;
+        color: #74b9ff;
+        margin-bottom: 1.5rem;
+        animation: fadeInScale 1.2s ease-out 0.6s both;
+    }
+
+    @keyframes fadeInScale {
+        from {
+            opacity: 0;
+            transform: scale(0.8);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1);
+        }
+    }
+
+    .contact-info {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 2rem;
+        margin-top: 1.5rem;
+        font-size: 1rem;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 25px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s ease;
+        animation: fadeInUp 1s ease-out calc(0.9s + var(--delay)) both;
+    }
+
+    .contact-item:nth-child(1) { --delay: 0.1s; }
+    .contact-item:nth-child(2) { --delay: 0.2s; }
+    .contact-item:nth-child(3) { --delay: 0.3s; }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .contact-item:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .content {
+        padding: 3rem;
+    }
+
+    .section {
+        margin-bottom: 3rem;
+        opacity: 0;
+        animation: fadeInSlide 0.8s ease-out forwards;
+        animation-delay: calc(1.5s + var(--section-delay));
+    }
+
+    .section:nth-child(1) { --section-delay: 0.1s; }
+    .section:nth-child(2) { --section-delay: 0.2s; }
+    .section:nth-child(3) { --section-delay: 0.3s; }
+    .section:nth-child(4) { --section-delay: 0.4s; }
+    .section:nth-child(5) { --section-delay: 0.5s; }
+
+    @keyframes fadeInSlide {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .section h2 {
+        color: #1e3c72;
+        font-size: 1.6rem;
+        margin-bottom: 1.5rem;
+        padding: 1rem 0;
+        position: relative;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .section h2::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, #74b9ff, #0984e3);
+        border-radius: 2px;
+    }
+
+    .section h2::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #e17055, #fd79a8);
+        border-radius: 2px;
+        animation: progressBar 2s ease-out 0.5s forwards;
+    }
+
+    @keyframes progressBar {
+        to { width: 60px; }
+    }
+
+    .medical-icon {
+        display: inline-block;
+        margin-right: 0.5rem;
+        color: #74b9ff;
+        animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+
+    .objective {
+        font-size: 1.1rem;
+        text-align: justify;
+        color: #555;
+        line-height: 1.8;
+        padding: 2rem;
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        border-radius: 15px;
+        border-left: 5px solid #74b9ff;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .objective::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(45deg, transparent 30%, rgba(116, 185, 255, 0.1) 50%, transparent 70%);
+        transform: translateX(-100%);
+        animation: shimmer 3s infinite;
+    }
+
+    @keyframes shimmer {
+        0% { transform: translateX(-100%); }
+        100% { transform: translateX(100%); }
+    }
+
+    .education-item, .experience-item {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: white;
+        border-radius: 15px;
+        border-left: 4px solid #74b9ff;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .education-item:hover, .experience-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+        border-left-color: #0984e3;
+    }
+
+    .education-item::before, .experience-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 100%;
+        background: linear-gradient(90deg, rgba(116, 185, 255, 0.1), transparent);
+        transition: width 0.3s ease;
+    }
+
+    .education-item:hover::before, .experience-item:hover::before {
+        width: 100%;
+    }
+
+    .degree, .job-title {
+        font-weight: 600;
+        color: #1e3c72;
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .institution, .company {
+        color: #e17055;
+        font-weight: 500;
+        font-size: 1.05rem;
+    }
+
+    .date, .location {
+        color: #74b9ff;
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        font-weight: 500;
+    }
+
+    .experience-description {
+        margin-top: 1rem;
+    }
+
+    .experience-description ul {
+        list-style: none;
+        padding-left: 0;
+    }
+
+    .experience-description li {
+        margin-bottom: 0.75rem;
+        padding-left: 2rem;
+        position: relative;
+        text-align: justify;
+        transition: all 0.3s ease;
+    }
+
+    .experience-description li::before {
+        content: '⚕';
+        color: #74b9ff;
+        position: absolute;
+        left: 0;
+        font-size: 1.2rem;
+        animation: rotate 2s linear infinite;
+    }
+
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+
+    .experience-description li:hover {
+        color: #1e3c72;
+        padding-left: 2.5rem;
+    }
+
+    .skills-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+        gap: 2rem;
+    }
+
+    .skill-category {
+        background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+        padding: 2rem;
+        border-radius: 20px;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+        position: relative;
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+
+    .skill-category::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, #74b9ff, #0984e3);
+        border-radius: 20px;
+        z-index: -1;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .skill-category:hover::before {
+        opacity: 0.1;
+    }
+
+    .skill-category:hover {
+        transform: scale(1.02);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .skill-category h3 {
+        color: #1e3c72;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .skill-list {
+        list-style: none;
+    }
+
+    .skill-list li {
+        padding: 0.5rem 0;
+        color: #555;
+        position: relative;
+        padding-left: 1.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .skill-list li::before {
+        content: '✓';
+        color: #74b9ff;
+        position: absolute;
+        left: 0;
+        font-weight: bold;
+        transition: all 0.3s ease;
+    }
+
+    .skill-list li:hover {
+        color: #1e3c72;
+        padding-left: 2rem;
+    }
+
+    .skill-list li:hover::before {
+        color: #0984e3;
+        transform: scale(1.2);
+    }
+
+    .certificates {
+        background: linear-gradient(135deg, #fdcb6e, #e17055);
+        padding: 2rem;
+        border-radius: 20px;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .certificates::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 20px,
+            rgba(255, 255, 255, 0.1) 20px,
+            rgba(255, 255, 255, 0.1) 40px
+        );
+        animation: certificateMove 15s linear infinite;
+    }
+
+    @keyframes certificateMove {
+        0% { transform: translate(-50%, -50%) rotate(0deg); }
+        100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+
+    .certificates h3 {
+        position: relative;
+        z-index: 2;
+    }
+
+    .certificate-item {
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .certificate-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+
+    .certificate-details {
+        opacity: 0.9;
+        font-size: 0.95rem;
+        margin-top: 0.25rem;
+    }
+
+    .scroll-indicator {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: rgba(116, 185, 255, 0.3);
+        z-index: 1000;
+    }
+
+    .scroll-progress {
+        height: 100%;
+        background: linear-gradient(90deg, #74b9ff, #0984e3);
+        width: 0%;
+        transition: width 0.1s ease;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            margin: 1rem;
+            border-radius: 15px;
+        }
+
+        .header {
+            padding: 2rem 1.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+        }
+
+        .contact-info {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .content {
+            padding: 2rem 1.5rem;
+        }
+
+        .skills-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .floating-medical-icon {
+            display: none;
+        }
+    }
+
+    @media print {
+        body {
+            background: white;
+        }
+        
+        .container {
+            box-shadow: none;
+            max-width: none;
+            animation: none;
+        }
+        
+        .header {
+            background: #1e3c72 !important;
+        }
+
+        .floating-medical-icon,
+        .background-animation,
+        .scroll-indicator {
+            display: none;
+        }
+
+        * {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+</style>
+```
+
+</head>
+<body>
+    <div class="scroll-indicator">
+        <div class="scroll-progress" id="scrollProgress"></div>
+    </div>
+
+```
+<div class="background-animation">
+    <div class="floating-medical-icon">⚕</div>
+    <div class="floating-medical-icon">🏥</div>
+    <div class="floating-medical-icon">📋</div>
+    <div class="floating-medical-icon">💊</div>
+</div>
+
+<div class="container">
+    <header class="header">
+        <div class="header-content">
+            <h1>NOUR ARAFA</h1>
+            <div class="subtitle">Medical Coding & Healthcare Professional</div>
+            <div class="contact-info">
+                <div class="contact-item">
+                    <span>📞</span>
+                    <span>(763) 234-7595</span>
+                </div>
+                <div class="contact-item">
+                    <span>✉️</span>
+                    <span>nona.ar88@gmail.com</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="content">
+        <section class="section">
+            <h2><span class="medical-icon">🎯</span>Professional Objective</h2>
+            <p class="objective">
+                Self-motivated, conscientious, and adaptable healthcare professional with excellent organizational and communication skills. Experienced in managing complex projects while consistently meeting deadlines. Seeking a position with advancement opportunities in a healthcare organization where I can accomplish career goals and contribute to team efficiency both personally and professionally, while utilizing my medical coding expertise and patient service experience.
+            </p>
+        </section>
+
+        <section class="section">
+            <h2><span class="medical-icon">💼</span>Professional Experience</h2>
+            
+            <div class="experience-item">
+                <div class="experience-header">
+                    <div class="job-title">Patient Service Representative</div>
+                    <div class="company">Radnet (Corona Advanced Imaging)</div>
+                    <div class="location">Corona, CA</div>
+                    <div class="date">February 2023 - February 2024</div>
+                </div>
+                <div class="experience-description">
+                    <ul>
+                        <li>Scheduled patient appointments with accuracy and efficiency, maintaining optimal clinic workflow</li>
+                        <li>Delivered exceptional customer service by promptly addressing patient inquiries and resolving concerns</li>
+                        <li>Maintained strict patient confidentiality and record accuracy in compliance with HIPAA regulations</li>
+                        <li>Participated in managing the organization's Grievance, Appeal, and External Review processes</li>
+                        <li>Verified insurance coverage and facilitated pre-authorization processes for medical procedures</li>
+                        <li>Accurately entered and updated patient information in electronic health record systems</li>
+                        <li>Processed billing inquiries and assisted with payment collection procedures</li>
+                        <li>Conducted appointment confirmations and efficiently managed rescheduling requests</li>
+                        <li>Collaborated with radiologists, technicians, and medical staff to ensure seamless patient care</li>
+                        <li>Educated patients on imaging procedures and ensured comfortable patient experiences</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="experience-item">
+                <div class="experience-header">
+                    <div class="job-title">Restaurant Manager</div>
+                    <div class="company">J&J Fish and Chicken</div>
+                    <div class="location">Brooklyn Park, MN</div>
+                    <div class="date">March 2017 - October 2022</div>
+                </div>
+                <div class="experience-description">
+                    <ul>
+                        <li>Supervised, trained, and mentored a diverse team of 25 employees, ensuring high productivity and job satisfaction</li>
+                        <li>Managed comprehensive day-to-day restaurant operations, maintaining efficiency across all departments</li>
+                        <li>Delivered exceptional customer service, professionally resolving complaints and addressing concerns</li>
+                        <li>Analyzed sales trends and developed revenue-increasing strategies including promotions and marketing campaigns</li>
+                        <li>Managed daily cash flow operations, assisted with budgeting, and implemented cost control measures</li>
+                        <li>Ensured strict compliance with local, state, and federal health codes and safety regulations</li>
+                        <li>Identified and implemented process improvements to reduce wait times and enhance customer satisfaction</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2><span class="medical-icon">🎓</span>Education</h2>
+            
+            <div class="education-item">
+                <div class="education-header">
+                    <div class="degree">Associate Degree - Medical Billing and Coding</div>
+                    <div class="institution">Ultimate Medical Academy</div>
+                    <div class="date">April 2023</div>
+                </div>
+            </div>
+
+            <div class="education-item">
+                <div class="education-header">
+                    <div class="degree">Bachelor's Degree - Tourism and Travel, Hotel Management</div>
+                    <div class="institution">University of Damascus</div>
+                    <div class="location">Damascus, Syria</div>
+                    <div class="date">April 2009</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2><span class="medical-icon">⚡</span>Skills & Competencies</h2>
+            <div class="skills-grid">
+                <div class="skill-category">
+                    <h3><span class="medical-icon">🗣️</span>Language Proficiencies</h3>
+                    <ul class="skill-list">
+                        <li>Bilingual: Arabic and English</li>
+                        <li>Excellent cultural sensitivity and cross-cultural communication</li>
+                        <li>Professional translation and interpretation abilities</li>
+                    </ul>
+                </div>
+                
+                <div class="skill-category">
+                    <h3><span class="medical-icon">💻</span>Technical Skills</h3>
+                    <ul class="skill-list">
+                        <li>Microsoft Office Suite (Excel, Word, PowerPoint)</li>
+                        <li>Electronic Health Records (EHR) systems</li>
+                        <li>Medical billing and coding software</li>
+                        <li>HIPAA compliance and patient confidentiality</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2><span class="medical-icon">🏆</span>Professional Certifications</h2>
+            <div class="certificates">
+                <div class="certificate-item">
+                    <div class="certificate-name">International Computer Driving License - Microsoft Office</div>
+                    <div class="certificate-details">Damascus, Syria | May 2014</div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // Scroll progress indicator
+    window.addEventListener('scroll', () => {
+        const scrollProgress = document.getElementById('scrollProgress');
+        const scrollTop = window.pageYOffset;
+        const docHeight = document.body.offsetHeight - window.innerHeight;
+        const scrollPercent = (scrollTop / docHeight) * 100;
+        scrollProgress.style.width = scrollPercent + '%';
+    });
+
+    // Add intersection observer for smoother animations
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.animationPlayState = 'running';
+            }
+        });
+    }, observerOptions);
+
+    // Observe all sections for animation triggers
+    document.querySelectorAll('.section').forEach(section => {
+        observer.observe(section);
+    });
+
+    // Add smooth scrolling for any anchor links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+</script>
+```
+
+</body>
+</html>
