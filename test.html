@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obai Sukar - Professional Resume</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.4;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            position: relative;
+            animation: slideInFromBottom 0.8s ease-out;
+        }
+
+        @keyframes slideInFromBottom {
+            0% {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px 25px 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            100% { transform: translateY(-100px); }
+        }
+
+        .name {
+            font-size: 2.5em;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 1;
+        }
+
+        .title {
+            font-size: 1.2em;
+            margin-bottom: 15px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+
+        .contact-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .contact-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .contact-item:hover {
+            background: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .contact-item:hover::before {
+            left: 100%;
+        }
+
+        .contact-item a {
+            transition: all 0.3s ease;
+        }
+
+        .contact-item:hover a {
+            text-shadow: 0 0 10px rgba(255,255,255,0.8);
+        }
+
+        .contact-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.8;
+        }
+
+        .main-content {
+            padding: 20px;
+        }
+
+        .section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            position: relative;
+            padding-bottom: 5px;
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .section-title:hover {
+            color: #3498db;
+            transform: translateX(10px);
+        }
+
+        .section-title:hover::after {
+            width: 100px;
+            background: linear-gradient(135deg, #f39c12, #e74c3c);
+        }
+
+        .executive-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #3498db;
+            font-size: 1em;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .achievement-card {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .achievement-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3498db, #e74c3c, #f39c12, #27ae60);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 15px 30px rgba(52, 152, 219, 0.3);
+            border-color: #3498db;
+        }
+
+        .achievement-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .achievement-card:hover .achievement-icon {
+            transform: scale(1.2) rotate(10deg);
+            color: #3498db;
+        }
+
+        .achievement-icon {
+            font-size: 1.5em;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+        }
+
+        .job {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .job::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(52, 152, 219, 0.05), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .job:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(52, 152, 219, 0.15);
+            border-left-width: 6px;
+        }
+
+        .job:hover::before {
+            left: 100%;
+        }
+
+        .job:hover .job-title {
+            color: #3498db;
+        }
+
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+
+        .job-title {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .company {
+            font-size: 1em;
+            color: #3498db;
+            margin-top: 2px;
+        }
+
+        .job-period {
+            font-weight: 500;
+            color: #7f8c8d;
+            font-size: 0.95em;
+        }
+
+        .job-description {
+            margin-bottom: 10px;
+            font-style: italic;
+            color: #555;
+            font-size: 0.95em;
+        }
+
+        .job-section {
+            margin-bottom: 10px;
+        }
+
+        .job-section-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 1em;
+        }
+
+        .job-list {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .job-list li {
+            padding: 3px 0;
+            padding-left: 20px;
+            position: relative;
+            line-height: 1.4;
+            font-size: 0.9em;
+        }
+
+        .job-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        .skills-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .skill-category {
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .skill-category-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .skill-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .skill-tag {
+            background: linear-gradient(135deg, #3498db, #2c3e50);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .education-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 3px solid #3498db;
+        }
+
+        .education-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 3px;
+            font-size: 0.95em;
+        }
+
+        .education-location {
+            color: #7f8c8d;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        .recognition-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .recognition-item {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 3px solid #f39c12;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .recognition-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #f39c12, #e74c3c);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .recognition-item:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 25px rgba(243, 156, 18, 0.2);
+            border-left-color: #e74c3c;
+        }
+
+        .recognition-item:hover::before {
+            transform: scaleX(1);
+        }
+
+        .recognition-item:hover .recognition-icon {
+            animation: bounce 0.6s ease;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        .recognition-icon {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+
+        .humanitarian-section {
+            background: linear-gradient(135deg, #e8f5e8 0%, #f8f9fa 100%);
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #27ae60;
+            margin-bottom: 20px;
+        }
+
+        .humanitarian-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .humanitarian-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            border-left: 3px solid #27ae60;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .humanitarian-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(39, 174, 96, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .humanitarian-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 25px rgba(39, 174, 96, 0.2);
+            border-left-width: 5px;
+        }
+
+        .humanitarian-item:hover::before {
+            left: 100%;
+        }
+
+        .humanitarian-item:hover .humanitarian-icon {
+            transform: scale(1.2);
+            color: #2ecc71;
+        }
+
+        .humanitarian-icon {
+            font-size: 1.5em;
+            margin-bottom: 8px;
+            color: #27ae60;
+        }
+
+        .humanitarian-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+            font-size: 0.95em;
+        }
+
+        .what-sets-apart {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .what-sets-apart h3 {
+            font-size: 1.4em;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .qualities-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .quality-item {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 6px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quality-item::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            transform: rotate(45deg);
+            transition: all 0.5s ease;
+            opacity: 0;
+        }
+
+        .quality-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 8px 25px rgba(255,255,255,0.1);
+        }
+
+        .quality-item:hover::before {
+            opacity: 1;
+            animation: qualityShimmer 0.8s ease-in-out;
+        }
+
+        @keyframes qualityShimmer {
+            0% { transform: rotate(45deg) translateX(-100%); }
+            100% { transform: rotate(45deg) translateX(100%); }
+        }
+
+        /* Staggered animation for sections */
+        .section {
+            margin-bottom: 25px;
+            animation: fadeInUp 0.6s ease-out;
+            animation-fill-mode: both;
+        }
+
+        .section:nth-child(1) { animation-delay: 0.1s; }
+        .section:nth-child(2) { animation-delay: 0.2s; }
+        .section:nth-child(3) { animation-delay: 0.3s; }
+        .section:nth-child(4) { animation-delay: 0.4s; }
+        .section:nth-child(5) { animation-delay: 0.5s; }
+        .section:nth-child(6) { animation-delay: 0.6s; }
+        .section:nth-child(7) { animation-delay: 0.7s; }
+        .section:nth-child(8) { animation-delay: 0.8s; }
+
+        @keyframes fadeInUp {
+            0% {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .company a {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .company a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #3498db, #e74c3c);
+            transition: width 0.3s ease;
+        }
+
+        .company a:hover {
+            color: #e74c3c !important;
+            transform: translateY(-1px);
+        }
+
+        .company a:hover::after {
+            width: 100%;
+        }
+
+        /* Pulse effect for important links */
+        .achievements-grid a, .recognition-item a {
+            animation: subtlePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes subtlePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+
+        .quality-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #ecf0f1;
+            font-size: 0.95em;
+        }
+
+        .quote {
+            font-style: italic;
+            text-align: center;
+            font-size: 0.95em;
+            line-height: 1.4;
+            opacity: 0.9;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 20px 15px 15px;
+            }
+            
+            .name {
+                font-size: 2em;
+            }
+            
+            .main-content {
+                padding: 15px;
+            }
+            
+            .job-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .contact-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .header {
+                background: #2c3e50;
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="name">OBAI SUKAR</h1>
+            <p class="title">IT Director | Systems Architect | Media Technologist</p>
+            <div class="contact-info">
+                <div class="contact-item">
+                    <span class="contact-icon">📍</span>
+                    <span>Michigan, USA</span>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon">📧</span>
+                    <span><a href="mailto:obai@obaisukar.com" style="color: white; text-decoration: none;">obai@obaisukar.com</a></span>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon">📱</span>
+                    <span><a href="tel:+18104458548" style="color: white; text-decoration: none;">810-445-8548</a></span>
+                </div>
+                <div class="contact-item">
+                    <span class="contact-icon">🌐</span>
+                    <span><a href="https://obaisukar.com" target="_blank" style="color: white; text-decoration: none;">obaisukar.com</a></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="section">
+                <h2 class="section-title">Executive Summary</h2>
+                <div class="executive-summary">
+                    Visionary technology leader with 25+ years of experience building resilient systems from chaos to scale. From founding an underground radio station in war-torn Syria to architecting IT infrastructure across 18+ healthcare facilities, I transform impossible challenges into breakthrough solutions. My unique blend of crisis leadership, technical mastery, and creative innovation drives results where others see only problems.
+                    <br><br>
+                    <strong>Core Impact:</strong> Built a media empire reaching <a href="https://www.youtube.com/c/karazahchannel" target="_blank" style="color: #3498db; text-decoration: underline;">301M+ viewers</a>, secured healthcare IT for 18+ facilities, and pioneered broadcast journalism under extreme conditions—all while maintaining unwavering ethical standards and team excellence.
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Signature Achievements</h2>
+                <div class="achievements-grid">
+                    <div class="achievement-card">
+                        <div class="achievement-icon">🎯</div>
+                        <div class="achievement-title">Crisis-to-Scale Leadership</div>
+                        <p>Transformed fragmented IT operations across 18+ senior care facilities into unified, secure infrastructure—improving uptime by 40% and response time by 75%</p>
+                    </div>
+                    <div class="achievement-card">
+                        <div class="achievement-icon">🎵</div>
+                        <div class="achievement-title">Media Innovation</div>
+                        <p>Created 1,000+ educational videos reaching <a href="https://www.youtube.com/c/karazahchannel" target="_blank" style="color: #2c3e50; text-decoration: underline;">713K+ subscribers and 301M+ views</a>, establishing industry-leading Arabic children's content with global recognition</p>
+                    </div>
+                    <div class="achievement-card">
+                        <div class="achievement-icon">📻</div>
+                        <div class="achievement-title">Impossible Made Possible</div>
+                        <p>Built and operated a fully functional radio station in an active war zone, featured in <a href="https://www.npr.org/2014/03/16/290615013/radio-pirates-risk-dangers-of-war-to-reach-syrian-people" target="_blank" style="color: #2c3e50; text-decoration: underline;">NPR</a>, <a href="https://www.washingtonpost.com/world/middle_east/syria-diaspora-clubhouse-middle-east/2021/03/09/90a2a55e-7c28-11eb-8c5e-32e47b42b51b_story.html" target="_blank" style="color: #2c3e50; text-decoration: underline;">Washington Post</a>, and international media for technical innovation under extreme conditions</p>
+                    </div>
+                    <div class="achievement-card">
+                        <div class="achievement-icon">🔒</div>
+                        <div class="achievement-title">Security Excellence</div>
+                        <p>Designed and implemented HIPAA-compliant cybersecurity frameworks, handling insider threats, data breaches, and compliance audits with zero security incidents</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Professional Experience</h2>
+                
+                <div class="job">
+                    <div class="job-header">
+                        <div>
+                            <div class="job-title">IT Director</div>
+                            <div class="company"><a href="https://synergyseniormanagement.com/" target="_blank" style="color: #3498db; text-decoration: none;">Synergy Senior Management</a></div>
+                        </div>
+                        <div class="job-period">2020 – Present</div>
+                    </div>
+                    <div class="job-description">
+                        Leading comprehensive IT transformation across 18+ assisted living communities
+                    </div>
+                    
+                    <div class="job-section">
+                        <div class="job-section-title">Strategic Infrastructure Leadership:</div>
+                        <ul class="job-list">
+                            <li>Architected enterprise-grade network infrastructure from ground zero, designing secure Wi-Fi, VLAN segmentation, and multi-site connectivity for 18+ healthcare facilities</li>
+                            <li>Spearheaded migration from fragmented outsourced IT to unified internal operations, achieving 99.8% uptime and 75% faster incident response</li>
+                            <li>Implemented comprehensive cybersecurity framework including MFA, email hardening (SPF/DKIM/DMARC), and zero-trust principles</li>
+                        </ul>
+                    </div>
+
+                    <div class="job-section">
+                        <div class="job-section-title">Innovation & Automation:</div>
+                        <ul class="job-list">
+                            <li>Developed custom HTML/JavaScript automation platforms for operational reporting, incident tracking, and asset management—reducing manual processes by 60%</li>
+                            <li>Deployed enterprise RMM/PSA solutions (Syncro MSP, NinjaOne) with integrated ticketing, documentation, and remote access capabilities</li>
+                            <li>Created scalable backup and disaster recovery systems using Backblaze and Synology NAS technologies</li>
+                        </ul>
+                    </div>
+
+                    <div class="job-section">
+                        <div class="job-section-title">Crisis Management & Security:</div>
+                        <ul class="job-list">
+                            <li>Led high-stakes insider threat investigations and employee terminations with complete discretion and legal compliance</li>
+                            <li>Managed data breach response, social engineering incidents, and regulatory compliance audits</li>
+                            <li>Established vendor management protocols and IT budgeting strategies supporting $2M+ annual technology investments</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="job">
+                    <div class="job-header">
+                        <div>
+                            <div class="job-title">Founder & Director</div>
+                            <div class="company"><a href="https://www.ss-prod.com" target="_blank" style="color: #3498db; text-decoration: none;">SS Media Productions</a> / <a href="https://www.youtube.com/c/karazahchannel" target="_blank" style="color: #3498db; text-decoration: none;">Karazah Channel</a></div>
+                        </div>
+                        <div class="job-period">2009 – Present</div>
+                    </div>
+                    <div class="job-description">
+                        Building global Arabic children's media empire with ethical excellence
+                    </div>
+                    
+                    <div class="job-section">
+                        <div class="job-section-title">Content Creation & Production:</div>
+                        <ul class="job-list">
+                            <li>Produced 1,000+ educational music videos reaching <a href="https://www.youtube.com/c/karazahchannel" target="_blank" style="color: #3498db; text-decoration: underline;">713K+ YouTube subscribers and 301M+ total views</a></li>
+                            <li>Built comprehensive production pipeline including audio engineering, animation, sound design, and global distribution</li>
+                            <li>Established Karazah Channel as premier Arabic-language children's content platform with industry-leading quality standards</li>
+                        </ul>
+                    </div>
+
+                    <div class="job-section">
+                        <div class="job-section-title">Technical Innovation:</div>
+                        <ul class="job-list">
+                            <li>Designed and deployed professional studio systems with remote collaboration capabilities spanning multiple continents</li>
+                            <li>Created digital asset management workflows supporting multi-national creative teams</li>
+                            <li>Pioneered Arabic children's content with strong ethical framework and distinctive visual identity</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="job">
+                    <div class="job-header">
+                        <div>
+                            <div class="job-title">Voice Over Supervisor</div>
+                            <div class="company"><a href="https://ayaanimations.com/" target="_blank" style="color: #3498db; text-decoration: none;">AYA Animations</a></div>
+                        </div>
+                        <div class="job-period">2018 – Present</div>
+                    </div>
+                    <div class="job-description">
+                        Sound design and voice direction for "Aya and Yusuf" educational series
+                    </div>
+                    
+                    <div class="job-section">
+                        <div class="job-section-title">Audio Leadership:</div>
+                        <ul class="job-list">
+                            <li>Values-based edutainment content for children aged 2-8</li>
+                            <li>Technical leadership in audio production and voice direction</li>
+                            <li>Cross-cultural content adaptation and quality assurance</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="job">
+                    <div class="job-header">
+                        <div>
+                            <div class="job-title">USA Office President</div>
+                            <div class="company"><a href="https://ghirasalnahda.com/" target="_blank" style="color: #3498db; text-decoration: none;">Ghiras Al-Nahda</a></div>
+                        </div>
+                        <div class="job-period">2015 – Present</div>
+                    </div>
+                    <div class="job-description">
+                        Non-profit organization dedicated to empowering education and supporting refugees and orphans
+                    </div>
+                    
+                    <div class="job-section">
+                        <div class="job-section-title">USA Office Leadership:</div>
+                        <ul class="job-list">
+                            <li>Leads US operations combining technology expertise with humanitarian mission to create lasting impact</li>
+                            <li>Educational empowerment programs for underserved communities</li>
+                            <li>Refugee and orphan support initiatives globally</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="job">
+                    <div class="job-header">
+                        <div>
+                            <div class="job-title">Co-Founder & Technical Director</div>
+                            <div class="company">Radio Al Kul</div>
+                        </div>
+                        <div class="job-period">2012 – 2015</div>
+                    </div>
+                    <div class="job-description">
+                        Underground radio station operating in Syria/Turkey during conflict
+                    </div>
+                    
+                    <div class="job-section">
+                        <div class="job-section-title">Extreme Environment Engineering:</div>
+                        <ul class="job-list">
+                            <li>Built complete radio station infrastructure in active war zone—from electrical wiring to broadcast transmission</li>
+                            <li>Engineered mobile broadcasting units for uncensored news delivery inside Syria during uprising</li>
+                            <li>Trained journalists, editors, and sound engineers under extreme conditions with zero safety incidents</li>
+                        </ul>
+                    </div>
+
+                    <div class="job-section">
+                        <div class="job-section-title">Innovation Under Pressure:</div>
+                        <ul class="job-list">
+                            <li>Designed emergency broadcast protocols and backup systems for mission-critical communications</li>
+                            <li>Created all sonic branding and studio environments using resourceful engineering solutions</li>
+                            <li>Achieved international recognition (<a href="https://www.npr.org/2014/03/16/290615013/radio-pirates-risk-dangers-of-war-to-reach-syrian-people" target="_blank" style="color: #3498db; text-decoration: underline;">NPR</a>, <a href="https://www.washingtonpost.com/world/middle_east/syria-diaspora-clubhouse-middle-east/2021/03/09/90a2a55e-7c28-11eb-8c5e-32e47b42b51b_story.html" target="_blank" style="color: #3498db; text-decoration: underline;">Washington Post</a>, <a href="https://medium.com/war-is-boring/radio-kul-broadcasts-for-a-free-syria-14ee9292b1ae" target="_blank" style="color: #3498db; text-decoration: underline;">Medium</a>) for technical innovation in crisis conditions</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="job">
+                    <div class="job-header">
+                        <div>
+                            <div class="job-title">Sound Engineering Manager</div>
+                            <div class="company"><a href="https://spacetoon.com/" target="_blank" style="color: #3498db; text-decoration: none;">Spacetoon Media Group</a></div>
+                        </div>
+                        <div class="job-period">2000 – 2009</div>
+                    </div>
+                    <div class="job-description">
+                        Youngest manager in company history, leading audio production for two TV channels
+                    </div>
+                    
+                    <div class="job-section">
+                        <div class="job-section-title">Leadership & Production Excellence:</div>
+                        <ul class="job-list">
+                            <li>Promoted to department manager by age 23, overseeing audio production for hundreds of children's programs</li>
+                            <li>Designed and built professional studios in Damascus and Malaysia with broadcast-quality standards</li>
+                            <li>Directed voice actors and mixed content for national TV distribution across Middle East and Asia</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Humanitarian & Civil Rights Impact</h2>
+                <div class="humanitarian-section">
+                    <p>Leveraging media and technology for social good and community support</p>
+                    <div class="humanitarian-grid">
+                        <div class="humanitarian-item">
+                            <div class="humanitarian-icon">🎙️</div>
+                            <div class="humanitarian-title">Independent Media Pioneer</div>
+                            <p>Radio Alkul provided critical uncensored news during Syrian civil war, reaching 500,000 daily listeners. Innovative mobile FM transmission technology for conflict zones with limited internet connectivity.</p>
+                        </div>
+                        
+                        <div class="humanitarian-item">
+                            <div class="humanitarian-icon">🎬</div>
+                            <div class="humanitarian-title">Documentary Advocacy</div>
+                            <p>Audio engineering for "Beyond Survival" (Syrian women's earthquake response) and "Her Road to Justice" (women activists). Amplifying marginalized voices through technical expertise.</p>
+                        </div>
+                        
+                        <div class="humanitarian-item">
+                            <div class="humanitarian-icon">👥</div>
+                            <div class="humanitarian-title">Refugee Community Support</div>
+                            <p>Recognized civil rights activist supporting refugee communities globally. Media as powerful instrument for advocacy, information access, and cultural preservation.</p>
+                        </div>
+                        
+                        <div class="humanitarian-item">
+                            <div class="humanitarian-icon">🌍</div>
+                            <div class="humanitarian-title">Cultural Preservation</div>
+                            <p>Karazah Channel serves Arabic-speaking diaspora globally, preserving language and cultural identity among younger generations. Educational content addressing parental concerns about digital safety.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Technical Expertise</h2>
+                <div class="skills-grid">
+                    <div class="skill-category">
+                        <div class="skill-category-title">Infrastructure & Cloud Systems</div>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Microsoft 365</span>
+                            <span class="skill-tag">Azure AD</span>
+                            <span class="skill-tag">Google Workspace</span>
+                            <span class="skill-tag">Windows Server</span>
+                            <span class="skill-tag">Exchange Online</span>
+                            <span class="skill-tag">Network Architecture</span>
+                            <span class="skill-tag">VLAN Configuration</span>
+                            <span class="skill-tag">VPN Technologies</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-category-title">Cybersecurity & Compliance</div>
+                        <div class="skill-tags">
+                            <span class="skill-tag">HIPAA Compliance</span>
+                            <span class="skill-tag">Multi-Factor Authentication</span>
+                            <span class="skill-tag">Email Security</span>
+                            <span class="skill-tag">Bitdefender</span>
+                            <span class="skill-tag">Backup Systems</span>
+                            <span class="skill-tag">Incident Response</span>
+                            <span class="skill-tag">Insider Threat Management</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-category-title">Automation & Management</div>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Syncro MSP</span>
+                            <span class="skill-tag">NinjaOne</span>
+                            <span class="skill-tag">HTML/JavaScript</span>
+                            <span class="skill-tag">Scripting</span>
+                            <span class="skill-tag">Asset Management</span>
+                            <span class="skill-tag">Remote Access</span>
+                            <span class="skill-tag">Surveillance Systems</span>
+                        </div>
+                    </div>
+                    <div class="skill-category">
+                        <div class="skill-category-title">Creative & Media Technology</div>
+                        <div class="skill-tags">
+                            <span class="skill-tag">Audio Engineering</span>
+                            <span class="skill-tag">Adobe Audition</span>
+                            <span class="skill-tag">Video Production</span>
+                            <span class="skill-tag">CapCut</span>
+                            <span class="skill-tag">OBS</span>
+                            <span class="skill-tag">Studio Design</span>
+                            <span class="skill-tag">Broadcasting</span>
+                            <span class="skill-tag">Sound Design</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 class="section-title">Education & Recognition</h2>
+                
+                <h3 style="color: #2c3e50; margin-bottom: 10px; font-size: 1.2em;">Education</h3>
+                <div class="education-item">
+                    <div class="education-title">Audio Engineering & Sound Design Diploma</div>
+                    <div class="education-location">Los Angeles Recording School | Hollywood, California (2005)</div>
+                </div>
+                <div class="education-item">
+                    <div class="education-title">Associate Diploma in Printing & Publishing</div>
+                    <div class="education-location">Intermediate Institute of Printing and Publishing | Damascus, Syria (1999)</div>
+                </div>
+                <div class="education-item">
+                    <div class="education-title">Professional Development</div>
+                    <div class="education-location">Cloud security, network design, Microsoft 365, automation scripting, AI integration</div>
+                </div>
+
+                <h3 style="color: #2c3e50; margin: 20px 0 10px 0; font-size: 1.2em;">Recognition</h3>
+                <div class="recognition-grid">
+                    <div class="recognition-item">
+                        <div class="recognition-icon">🏆</div>
+                        <div><strong><a href="https://www.imdb.com/name/nm8455296/?ref_=ttfc_fcr_cr" target="_blank" style="color: #2c3e50; text-decoration: underline;">Student Academy Award Winner (2016)</a></strong><br>Cloud Kumo (Short Film) - Lead Sound Designer | Silver Award - Alternative Category</div>
+                    </div>
+                    <div class="recognition-item">
+                        <div class="recognition-icon">🌟</div>
+                        <div><strong><a href="https://www.arabicaward.ae/p/award-winners/2019" target="_blank" style="color: #2c3e50; text-decoration: underline;">Mohammed Bin Rashid Arabic Language Award (2019)</a></strong><br>Electronic & Social Media Category - Karazah Channel | Winner</div>
+                    </div>
+                    <div class="recognition-item">
+                        <div class="recognition-icon">🥇</div>
+                        <div><strong>Gulf Film Festival (2007)</strong><br>"Al-Waqi'iyah Al-Afdal" - First Prize | Short Student Films</div>
+                    </div>
+                    <div class="recognition-item">
+                        <div class="recognition-icon">📰</div>
+                        <div><strong>International Media Coverage</strong><br>Featured in <a href="https://www.npr.org/2014/03/16/290615013/radio-pirates-risk-dangers-of-war-to-reach-syrian-people" target="_blank" style="color: #2c3e50; text-decoration: underline;">NPR</a>, <a href="https://www.washingtonpost.com/world/middle_east/syria-diaspora-clubhouse-middle-east/2021/03/09/90a2a55e-7c28-11eb-8c5e-32e47b42b51b_story.html" target="_blank" style="color: #2c3e50; text-decoration: underline;">Washington Post</a>, <a href="https://medium.com/war-is-boring/radio-kul-broadcasts-for-a-free-syria-14ee9292b1ae" target="_blank" style="color: #2c3e50; text-decoration: underline;">Medium</a> for Radio Al Kul innovation</div>
+                    </div>
+                    <div class="recognition-item">
+                        <div class="recognition-icon">🎯</div>
+                        <div><strong>Industry Leadership</strong><br>Pioneered Arabic children's content with <a href="https://www.youtube.com/c/karazahchannel" target="_blank" style="color: #2c3e50; text-decoration: underline;">301M+ views</a> and global recognition</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="what-sets-apart">
+                <h3>What Sets Me Apart</h3>
+                <div class="qualities-grid">
+                    <div class="quality-item">
+                        <div class="quality-title">Crisis Leadership</div>
+                        <p>Proven ability to lead through extreme conditions—from war zones to data breaches—while maintaining team morale and technical excellence.</p>
+                    </div>
+                    <div class="quality-item">
+                        <div class="quality-title">Cross-Cultural Innovation</div>
+                        <p>Built successful operations across Middle East, Asia, and North America, adapting to diverse regulatory and cultural environments.</p>
+                    </div>
+                    <div class="quality-item">
+                        <div class="quality-title">Ethical Technology</div>
+                        <p>Unwavering commitment to ethical standards in both healthcare IT and children's media, ensuring privacy, security, and positive impact.</p>
+                    </div>
+                    <div class="quality-item">
+                        <div class="quality-title">Impossible Problem Solving</div>
+                        <p>Track record of achieving "impossible" goals through creative engineering, strategic thinking, and relentless execution.</p>
+                    </div>
+                </div>
+                <div class="quote">
+                    "I don't just manage IT—I transform chaos into systems that scale, secure, and inspire. Whether building from scratch or rebuilding from crisis, I bring the strategic vision, technical depth, and human leadership that turns challenges into competitive advantages."
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
