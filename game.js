@@ -410,40 +410,49 @@ class Game {
   }
 
   updateUIVisibility() {
+      console.log(`[UI DEBUG] updateUIVisibility called. Current state: ${this.currentGameState}`);
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       
       // 1. Hide ALL game-screen elements first
-      document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.game-screen').forEach(el => {
+        el.style.display = 'none';
+        console.log(`[UI DEBUG] Hiding: #${el.id || el.className}`);
+      });
       // 2. Always hide action buttons first
       this.jumpButton.style.display = 'none';
       this.duckButton.style.display = 'none';
+      console.log(`[UI DEBUG] Hiding jumpButton and duckButton`);
 
       // Crucially, hide the game-container itself initially or when not in game state
       this.gameContainer.style.display = 'none'; // Hide game-container by default
+      console.log(`[UI DEBUG] Hiding gameContainer`);
 
       // 3. Show elements based on state and orientation
       if (this.currentGameState === 'loading') {
           this.loaderScreen.style.display = 'flex';
-          // gameContainer remains hidden
+          console.log(`[UI DEBUG] Showing loaderScreen`);
       } else if (!isLandscape) {
           this.orientationWarning.style.display = 'flex';
-          // gameContainer remains hidden
+          console.log(`[UI DEBUG] Showing orientationWarning`);
       } else {
           // If in a game state and landscape, game-container should be flex
           this.gameContainer.style.display = 'flex'; // Now explicitly show the game-container
+          console.log(`[UI DEBUG] Showing gameContainer`);
 
           if (this.currentGameState === 'playing') {
               this.uiContainer.style.display = 'flex';
               this.scoreDisplay.style.display = 'block'; 
               this.jumpButton.style.display = 'flex';
               this.duckButton.style.display = 'flex';
-              // Canvas is part of gameContainer, so it's visible automatically when gameContainer is flex
+              console.log(`[UI DEBUG] Showing uiContainer, scoreDisplay, jumpButton, duckButton`);
           } else if (this.currentGameState === 'gameOver') {
               this.uiContainer.style.display = 'flex';
               this.scoreDisplay.style.display = 'block';
               this.gameOverScreen.style.display = 'flex';
+              console.log(`[UI DEBUG] Showing uiContainer, scoreDisplay, gameOverScreen`);
           } else if (this.currentGameState === 'characterSelect') {
               this.characterSelectScreen.style.display = 'flex';
+              console.log(`[UI DEBUG] Showing characterSelectScreen`);
           }
       }
       // Debugger can be shown independently if needed
