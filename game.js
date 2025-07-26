@@ -412,26 +412,32 @@ class Game {
   updateUIVisibility() {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       
-      // Hide all game-screen elements by default
+      // 1. Hide ALL game-screen elements first
       document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
-      // Always hide action buttons first, then show if playing
+      // 2. Always hide action buttons first
       this.jumpButton.style.display = 'none';
       this.duckButton.style.display = 'none';
 
-      // Show elements based on state and orientation
+      // Crucially, hide the game-container itself initially or when not in game state
+      this.gameContainer.style.display = 'none'; // Hide game-container by default
+
+      // 3. Show elements based on state and orientation
       if (this.currentGameState === 'loading') {
           this.loaderScreen.style.display = 'flex';
+          // gameContainer remains hidden
       } else if (!isLandscape) {
           this.orientationWarning.style.display = 'flex';
+          // gameContainer remains hidden
       } else {
           // If in a game state and landscape, game-container should be flex
-          this.gameContainer.style.display = 'flex'; 
+          this.gameContainer.style.display = 'flex'; // Now explicitly show the game-container
 
           if (this.currentGameState === 'playing') {
               this.uiContainer.style.display = 'flex';
-              this.scoreDisplay.style.display = 'block';
+              this.scoreDisplay.style.display = 'block'; 
               this.jumpButton.style.display = 'flex';
               this.duckButton.style.display = 'flex';
+              // Canvas is part of gameContainer, so it's visible automatically when gameContainer is flex
           } else if (this.currentGameState === 'gameOver') {
               this.uiContainer.style.display = 'flex';
               this.scoreDisplay.style.display = 'block';
@@ -440,6 +446,8 @@ class Game {
               this.characterSelectScreen.style.display = 'flex';
           }
       }
+      // Debugger can be shown independently if needed
+      // this.debuggerDisplay.style.display = 'block'; // Or 'none' if you want to control it
   }
 
   renderCharacterSelectScreen() {
@@ -468,7 +476,9 @@ class Game {
       });
 
       // Remove existing listener to prevent duplicates
-      this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
+      if (this._startGameButtonHandler) { // Check if handler exists before removing
+          this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
+      }
       this._startGameButtonHandler = () => {
           if (this.currentGameState === 'characterSelect') {
               this.startGame();
@@ -484,7 +494,9 @@ class Game {
       this.distance = 0;
       this.steps = 0; // Reset steps counter
       this.nextThemeToggleScore = 200; // Reset theme toggle
-      
+      this.isNightMode = false; // Reset to day mode on game start
+      document.body.classList.remove('night-mode'); // Ensure body class is removed
+
       // Reset player state
       this.player.y = this.groundY - this.player.height;
       this.player.velY = 0;
