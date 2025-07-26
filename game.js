@@ -8,34 +8,43 @@ class Game {
         this.score = 0;
         this.bestScore = localStorage.getItem('tarboushBestScore') || 0;
         this.speed = 3.5; // Adjusted for balanced start
+        this.initialSpeed = 3.5; // Store initial speed for resets
+        this.maxSpeed = 10; // Cap for game speed
         this.distance = 0;
-        this.lastScoredDistance = 0;
         this.steps = 0; // Track steps for new scoring system
         this.nextThemeToggleScore = 200; // Day/Night toggle every 200 points
+        this.lastUpdateTime = 0; // For delta time calculation
+        this.deltaTime = 0; // Time elapsed since last frame
 
-        // Jump control variables - prevent double jumping
-        this.jumpPressed = false;
-        this.spacePressed = false;
+        // Jump control variables
+        this.jumpRequested = false;
+        this.spacePressed = false; // For keyboard specific state
 
-        // Player properties - Updated for shorter character
+        // Pixel art scale factor
+        this.scale = 2; // Each "pixel" in the art is 2x2 on canvas
+
+        // Player properties - Updated for shorter character and scaled hitboxes
         this.player = {
-            x: 120, y: 0, width: 48, height: 60, // Reduced from 50x70 to 48x60
+            x: 120, y: 0, width: 24 * this.scale, height: 30 * this.scale, // Base pixel size (24x30) * scale
             velY: 0, jumping: false, grounded: true, isDucking: false,
-            runHitbox: { x_offset: 6, y_offset: 6, width: 36, height: 54 }, // Adjusted proportionally
-            duckHitbox: { x_offset: 6, y_offset: 25, width: 36, height: 35 }, // Adjusted for ducking
+            // Hitboxes are relative to player's top-left corner
+            runHitbox: { x_offset: 3 * this.scale, y_offset: 3 * this.scale, width: 18 * this.scale, height: 27 * this.scale }, 
+            duckHitbox: { x_offset: 3 * this.scale, y_offset: 12 * this.scale, width: 18 * this.scale, height: 15 * this.scale }, 
             animFrame: 0,
-            animSpeed: 0.2
+            animSpeed: 0.25 // Slightly faster animation
         };
 
         this.isNightMode = false;
         this.particles = [];
         
         // Updated Syrian Identity Color Themes with pixel art character colors
+        // These now directly map to CSS variables for consistency
         this.themeColors = {
             day: {
-                ground: '#b9a779', groundShadow: '#988561',
+                ground: getComputedStyle(document.documentElement).getPropertyValue('--golden-wheat-secondary'), 
+                groundShadow: getComputedStyle(document.documentElement).getPropertyValue('--golden-wheat-dark'),
                 cloud: 'rgba(237, 235, 224, 0.7)', 
-                // Pixel art character colors
+                // Pixel art character colors (using day mode CSS variables for character)
                 playerTarboush: '#054239',        // Dark green tarboush
                 playerTarboushTassel: '#FFD700', // Gold tassel
                 playerSkin: '#D4A574',           // Peachy tan skin
@@ -47,13 +56,14 @@ class Game {
                 obstacleBlack: '#3C3C3C',        // Pixel art obstacle color
                 obstacleGrey: '#988561',
                 obstacleMissileFlame: '#b9a779',
-                sky: '#ffffff', // White background
+                sky: getComputedStyle(document.documentElement).getPropertyValue('--charcoal-primary'), // White background
                 coin: '#b9a779'
             },
             night: {
-                ground: '#6B2F2A', groundShadow: '#4A1F1E',
+                ground: getComputedStyle(document.documentElement).getPropertyValue('--deep-umber-primary'), 
+                groundShadow: getComputedStyle(document.documentElement).getPropertyValue('--deep-umber-secondary'),
                 cloud: 'rgba(237, 235, 224, 0.3)',
-                // Night mode character colors (slightly adjusted)
+                // Night mode character colors (slightly adjusted for night vision)
                 playerTarboush: '#002623',
                 playerTarboushTassel: '#B8860B', // Darker gold
                 playerSkin: '#C49464',           // Slightly darker skin
@@ -65,12 +75,12 @@ class Game {
                 obstacleBlack: '#2C2C2C',        // Darker obstacle
                 obstacleGrey: '#6B2F2A',
                 obstacleMissileFlame: '#988561',
-                sky: '#f8f8f8',
+                sky: getComputedStyle(document.documentElement).getPropertyValue('--main-bg'), // Dark background for night
                 coin: '#988561'
             }
         };
 
-        // Character definitions
+        // Character definitions (SVG images are good for character selection menu)
         this.characters = [
             { 
                 id: 'shami_abu_tarboush', 
@@ -139,10 +149,8 @@ class Game {
 
         // Get Canvas and Context
         this.canvas = document.getElementById('gameCanvas');
-        console.log("[Constructor DEBUG] Canvas element:", this.canvas);
         if (!this.canvas) throw new Error("Canvas element #gameCanvas not found!");
         this.ctx = this.canvas.getContext('2d');
-        console.log("[Constructor DEBUG] Canvas context:", this.ctx);
         if (!this.ctx) throw new Error("Failed to get 2D rendering context for canvas.");
 
         // Get UI element references
@@ -156,7 +164,7 @@ class Game {
         if (!this.gameOverScreen) throw new Error("gameOverScreen element not found!");
         this.characterSelectScreen = document.getElementById('characterSelectScreen');
         if (!this.characterSelectScreen) throw new Error("characterSelectScreen element not found!");
-        this.gameContainer = document.querySelector('.game-container');
+        this.gameContainer = document.querySelector('.game-container'); // Now parent of canvas and other UI
         if (!this.gameContainer) throw new Error("Game container element not found!");
         this.uiContainer = document.getElementById('ui-container');
         if (!this.uiContainer) throw new Error("uiContainer element not found!");
@@ -172,26 +180,28 @@ class Game {
         if (!this.orientationWarning) throw new Error("orientation-warning element not found!");
         this.loaderScreen = document.getElementById('loader');
         if (!this.loaderScreen) throw new Error("loaderScreen element not found!");
+        this.debuggerDisplay = document.getElementById('debuggerDisplay');
 
         // Game state setup
         this.setupCanvas();
         this.obstacles = [];
         this.distanceToNextSpawn = 0;
         // Updated obstacle patterns with groups and varied heights
+        // Added some more strategic patterns, e.g., jump then duck
         this.obstaclePatterns = [
             // Single obstacles
-            { type: 'cactus', width: 24, height: 40, yOffset: 0, group: 'single' },
-            { type: 'rock', width: 30, height: 20, yOffset: 0, group: 'single' },
-            { type: 'bird', width: 35, height: 20, yOffset: 45, group: 'single' },
-            { type: 'bird', width: 35, height: 20, yOffset: 65, group: 'single' }, // Higher bird
-            { type: 'missile', width: 50, height: 15, yOffset: 25, group: 'single' },
-            { type: 'missile', width: 50, height: 15, yOffset: 40, group: 'single' }, // Higher missile
-            // Double obstacles
-            { type: 'cactus', width: 24, height: 40, yOffset: 0, group: 'double', count: 2, spacing: () => 50 + Math.random() * 50 },
-            { type: 'rock', width: 30, height: 20, yOffset: 0, group: 'double', count: 2, spacing: () => 50 + Math.random() * 50 },
-            // Mixed groups
-            { type: 'bird', width: 35, height: 20, yOffset: 45, group: 'mixed', follow: 'cactus', followOffset: () => 100 + Math.random() * 50 },
-            { type: 'missile', width: 50, height: 15, yOffset: 25, group: 'mixed', follow: 'rock', followOffset: () => 100 + Math.random() * 50 }
+            { type: 'cactus', width: 12 * this.scale, height: 20 * this.scale, yOffset: 0, group: 'single', minSpacing: 200, maxSpacing: 400 },
+            { type: 'rock', width: 15 * this.scale, height: 10 * this.scale, yOffset: 0, group: 'single', minSpacing: 200, maxSpacing: 400 },
+            { type: 'bird', width: 18 * this.scale, height: 10 * this.scale, yOffset: 25 * this.scale, group: 'single', minSpacing: 250, maxSpacing: 500 }, // Mid-height bird
+            { type: 'bird', width: 18 * this.scale, height: 10 * this.scale, yOffset: 35 * this.scale, group: 'single', minSpacing: 250, maxSpacing: 500 }, // High bird
+            { type: 'missile', width: 25 * this.scale, height: 8 * this.scale, yOffset: 15 * this.scale, group: 'single', minSpacing: 300, maxSpacing: 600 }, // Mid-height missile
+            { type: 'missile', width: 25 * this.scale, height: 8 * this.scale, yOffset: 25 * this.scale, group: 'single', minSpacing: 300, maxSpacing: 600 }, // High missile
+            // Double obstacles (ground)
+            { type: 'cactus', width: 12 * this.scale, height: 20 * this.scale, yOffset: 0, group: 'double-ground', count: 2, spacing: 60 * this.scale, minSpacing: 350, maxSpacing: 550 },
+            { type: 'rock', width: 15 * this.scale, height: 10 * this.scale, yOffset: 0, group: 'double-ground', count: 2, spacing: 70 * this.scale, minSpacing: 350, maxSpacing: 550 },
+            // Mixed patterns (more complex sequences)
+            { type: 'cactus', width: 12 * this.scale, height: 20 * this.scale, yOffset: 0, group: 'jump-duck', sequence: [{ type: 'cactus', yOffset: 0 }, { type: 'bird', yOffset: 25 * this.scale, xOffset: 100 * this.scale }], minSpacing: 400, maxSpacing: 700 },
+            { type: 'rock', width: 15 * this.scale, height: 10 * this.scale, yOffset: 0, group: 'duck-jump', sequence: [{ type: 'missile', yOffset: 15 * this.scale }, { type: 'cactus', yOffset: 0, xOffset: 120 * this.scale }], minSpacing: 400, maxSpacing: 700 }
         ];
         this.clouds = this.createClouds();
 
@@ -218,13 +228,13 @@ class Game {
                 }, 500);
             });
         } else {
-            // Fallback
+            // Fallback for immediate display if animation issues
             this.currentGameState = 'characterSelect';
             this.updateUIVisibility();
             this.renderCharacterSelectScreen();
         }
 
-        this.gameLoop();
+        requestAnimationFrame((timestamp) => this.gameLoop(timestamp)); // Start game loop with timestamp
     } catch (e) {
         console.error("Error during Game initialization:", e);
         this.gameRunning = false;
@@ -238,23 +248,22 @@ class Game {
     this.jumpButton.addEventListener('touchstart', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (this.currentGameState === 'playing' && !this.jumpPressed) {
+        if (this.currentGameState === 'playing') { // No need for !this.jumpPressed here, handled by jumpRequested
             this.jumpRequested = true;
-            this.jumpPressed = true;
         }
     }, { passive: false });
 
     this.jumpButton.addEventListener('touchend', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        this.jumpPressed = false;
+        // No need to reset jumpPressed here as jumpRequested is one-shot
     }, { passive: false });
 
     // Add click events as fallback
     this.jumpButton.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (this.currentGameState === 'playing' && !this.jumpPressed) {
+        if (this.currentGameState === 'playing') { // No need for !this.jumpPressed here, handled by jumpRequested
             this.jumpRequested = true;
         }
     });
@@ -302,7 +311,7 @@ class Game {
             if ((e.code === 'Space' || e.code === 'ArrowUp') && !this.spacePressed) {
                 e.preventDefault();
                 this.jumpRequested = true;
-                this.spacePressed = true;
+                this.spacePressed = true; // Set flag to prevent repeated jump
             } else if (e.code === 'ArrowDown') {
                 e.preventDefault();
                 this.player.isDucking = true;
@@ -314,7 +323,7 @@ class Game {
         if (this.currentGameState === 'playing') {
             if (e.code === 'Space' || e.code === 'ArrowUp') {
                 e.preventDefault();
-                this.spacePressed = false;
+                this.spacePressed = false; // Reset flag on key up
             } else if (e.code === 'ArrowDown') {
                 e.preventDefault();
                 this.player.isDucking = false;
@@ -368,9 +377,9 @@ class Game {
     this.canvas.width = Math.max(targetWidth, 400);
     this.canvas.height = Math.max(targetHeight, 200);
     
-    // Adjusted ground position for shorter character
-    this.groundY = this.canvas.height - 50; // Reduced from 60 to 50
-    this.player.y = this.groundY - this.player.height;
+    // Adjusted ground position for shorter character relative to canvas height
+    this.groundY = this.canvas.height - (25 * this.scale); // Ground is 25 pixels (scaled) from bottom
+    this.player.y = this.groundY - this.player.height; // Place player on the ground
   }
 
   createClouds() {
@@ -391,27 +400,23 @@ class Game {
   _getColor(colorName) {
     const mode = this.isNightMode ? 'night' : 'day';
     const color = this.themeColors[mode][colorName];
-    return color || this.themeColors.day.sky;
+    return color || this.themeColors.day.sky; // Fallback to day sky color
   }
 
   toggleDayNight() {
     this.isNightMode = !this.isNightMode;
     document.body.classList.toggle('night-mode', this.isNightMode);
-    this.updateScoreDisplay();
+    this.updateScoreDisplay(); // Update score display in case colors change
   }
 
   updateUIVisibility() {
       const isLandscape = window.matchMedia("(orientation: landscape)").matches;
       
-      // Hide all elements first
-      this.gameContainer.style.display = 'none';
-      this.uiContainer.style.display = 'none';
+      // Hide all game-screen elements by default
+      document.querySelectorAll('.game-screen').forEach(el => el.style.display = 'none');
+      // Always hide action buttons first, then show if playing
       this.jumpButton.style.display = 'none';
       this.duckButton.style.display = 'none';
-      this.characterSelectScreen.style.display = 'none';
-      this.gameOverScreen.style.display = 'none';
-      this.orientationWarning.style.display = 'none';
-      this.loaderScreen.style.display = 'none';
 
       // Show elements based on state and orientation
       if (this.currentGameState === 'loading') {
@@ -419,14 +424,15 @@ class Game {
       } else if (!isLandscape) {
           this.orientationWarning.style.display = 'flex';
       } else {
+          // If in a game state and landscape, game-container should be flex
+          this.gameContainer.style.display = 'flex'; 
+
           if (this.currentGameState === 'playing') {
-              this.gameContainer.style.display = 'flex';
               this.uiContainer.style.display = 'flex';
               this.scoreDisplay.style.display = 'block';
               this.jumpButton.style.display = 'flex';
               this.duckButton.style.display = 'flex';
           } else if (this.currentGameState === 'gameOver') {
-              this.gameContainer.style.display = 'flex';
               this.uiContainer.style.display = 'flex';
               this.scoreDisplay.style.display = 'block';
               this.gameOverScreen.style.display = 'flex';
@@ -461,9 +467,8 @@ class Game {
           characterGrid.appendChild(slot);
       });
 
-      if (this._startGameButtonHandler) {
-          this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
-      }
+      // Remove existing listener to prevent duplicates
+      this.startGameBtn.removeEventListener('click', this._startGameButtonHandler);
       this._startGameButtonHandler = () => {
           if (this.currentGameState === 'characterSelect') {
               this.startGame();
@@ -475,19 +480,21 @@ class Game {
   startGame() {
       this.gameRunning = true;
       this.score = 0;
-      this.speed = 3.5; // Balanced start speed
+      this.speed = this.initialSpeed; // Reset to initial speed
       this.distance = 0;
-      this.lastScoredDistance = 0;
       this.steps = 0; // Reset steps counter
-      this.nextThemeToggleScore = 200;
+      this.nextThemeToggleScore = 200; // Reset theme toggle
+      
+      // Reset player state
       this.player.y = this.groundY - this.player.height;
       this.player.velY = 0;
       this.player.grounded = true;
       this.player.isDucking = false;
       this.player.jumping = false;
       this.jumpRequested = false;
-      this.jumpPressed = false;
       this.spacePressed = false;
+      this.player.animFrame = 0; // Reset animation frame
+
       this.obstacles = [];
       this.particles = [];
       this.clouds = this.createClouds();
@@ -506,7 +513,7 @@ class Game {
 
   updateScoreDisplay() {
       if (this.scoreDisplay) {
-          this.scoreDisplay.textContent = `نقاط: ${this.score}`;
+          this.scoreDisplay.textContent = `نقاط: ${this.score} ليرة سوري`; // Added currency
       }
       if (this.score > this.bestScore) {
           this.bestScore = this.score;
@@ -516,51 +523,65 @@ class Game {
   }
 
   setNextSpawnDistance() {
-      this.distanceToNextSpawn = this.canvas.width / 2 + Math.random() * this.canvas.width / 2; // Wider range for unpredictability
+      // Adjusted range for more varied spacing and challenge
+      this.distanceToNextSpawn = (this.canvas.width * 0.4) + Math.random() * (this.canvas.width * 0.6);
   }
 
   spawnObstacle() {
-      // Choose pattern type based on probability
+      // Choose pattern type based on probability and current speed/difficulty
       const rand = Math.random();
-      let pattern;
-      if (rand < 0.5) {
-          // Single obstacle (50%)
-          pattern = this.obstaclePatterns.filter(p => p.group === 'single')[Math.floor(Math.random() * 6)];
-      } else if (rand < 0.8) {
-          // Double obstacle (30%)
-          pattern = this.obstaclePatterns.filter(p => p.group === 'double')[Math.floor(Math.random() * 2)];
-      } else {
-          // Mixed group (20%)
-          pattern = this.obstaclePatterns.filter(p => p.group === 'mixed')[Math.floor(Math.random() * 2)];
-      }
+      let patternsToChoose = [];
 
-      const createObstacle = (data, xOffset = 0) => {
+      if (this.score < 100) { // Easier obstacles early on
+          patternsToChoose = this.obstaclePatterns.filter(p => p.group === 'single');
+      } else if (this.score < 300) { // Introduce double obstacles
+          patternsToChoose = this.obstaclePatterns.filter(p => p.group === 'single' || p.group === 'double-ground');
+      } else { // All obstacles, including complex sequences
+          patternsToChoose = this.obstaclePatterns;
+      }
+      
+      const pattern = patternsToChoose[Math.floor(Math.random() * patternsToChoose.length)];
+
+      const createObstacleInstance = (data, xOffset = 0) => {
+          // Calculate obstacle height relative to ground and its own yOffset
+          const actualY = this.groundY - data.height - data.yOffset;
           return {
-              x: this.canvas.width + 10 + xOffset,
-              y: this.groundY - data.height - data.yOffset,
+              x: this.canvas.width + 10 + xOffset, // Start off screen
+              y: actualY,
               width: data.width,
               height: data.height,
               type: data.type,
               yOffset: data.yOffset,
-              hitbox: {
-                  x_offset: 2,
-                  y_offset: 2,
-                  width: data.width - 4,
-                  height: data.height - 4
+              hitbox: { // Simple AABB hitbox, slightly smaller than actual drawn size
+                  x_offset: data.width * 0.1, // 10% from left
+                  y_offset: data.height * 0.1, // 10% from top
+                  width: data.width * 0.8,    // 80% of width
+                  height: data.height * 0.8   // 80% of height
               },
               scored: false
           };
       };
 
       if (pattern.group === 'single') {
-          this.obstacles.push(createObstacle(pattern));
-      } else if (pattern.group === 'double') {
-          this.obstacles.push(createObstacle(pattern));
-          this.obstacles.push(createObstacle(pattern, pattern.spacing()));
-      } else if (pattern.group === 'mixed') {
-          this.obstacles.push(createObstacle(pattern));
-          const followData = this.obstaclePatterns.find(p => p.type === pattern.follow && p.group === 'single');
-          this.obstacles.push(createObstacle(followData, pattern.followOffset()));
+          this.obstacles.push(createObstacleInstance(pattern));
+          this.distanceToNextSpawn = pattern.minSpacing + Math.random() * (pattern.maxSpacing - pattern.minSpacing);
+      } else if (pattern.group === 'double-ground') {
+          this.obstacles.push(createObstacleInstance(pattern));
+          this.obstacles.push(createObstacleInstance(pattern, pattern.spacing)); // Fixed spacing
+          this.distanceToNextSpawn = pattern.minSpacing + Math.random() * (pattern.maxSpacing - pattern.minSpacing);
+      } else if (pattern.group === 'jump-duck' || pattern.group === 'duck-jump') {
+          // For sequences, add all obstacles from the sequence
+          pattern.sequence.forEach(seqItem => {
+              const obstacleData = this.obstaclePatterns.find(p => p.type === seqItem.type && p.group === 'single');
+              if (obstacleData) {
+                  this.obstacles.push(createObstacleInstance({
+                      ...obstacleData, // Copy base properties
+                      yOffset: seqItem.yOffset, // Override yOffset
+                      height: obstacleData.height // Ensure height is from base type
+                  }, seqItem.xOffset || 0)); // Use xOffset if provided
+              }
+          });
+          this.distanceToNextSpawn = pattern.minSpacing + Math.random() * (pattern.maxSpacing - pattern.minSpacing);
       }
   }
 
@@ -576,7 +597,7 @@ class Game {
               this.updateScoreDisplay();
           }
 
-          // Enhanced collision detection - especially for flying objects
+          // Enhanced collision detection
           if (this.checkCollision(this.player, obs)) {
               this.createExplosionParticles(this.player.x + this.player.width / 2, this.player.y + this.player.height / 2);
               this.gameOver();
@@ -589,11 +610,11 @@ class Game {
           }
       }
 
-      // Spawn new obstacles
+      // Spawn new obstacles - check last obstacle's position
+      const lastObstacleX = this.obstacles.length > 0 ? this.obstacles[this.obstacles.length - 1].x : 0;
       if (this.obstacles.length === 0 || 
-          (this.canvas.width - (this.obstacles.length > 0 ? this.obstacles[this.obstacles.length - 1].x : this.canvas.width)) >= this.distanceToNextSpawn) {
+          (this.canvas.width - lastObstacleX) >= this.distanceToNextSpawn) {
           this.spawnObstacle();
-          this.setNextSpawnDistance();
       }
   }
 
@@ -610,6 +631,7 @@ class Game {
       const o_w = obstacle.hitbox.width;
       const o_h = obstacle.hitbox.height;
 
+      // Check for overlap
       const collision = p_x < o_x + o_w &&
              p_x + p_w > o_x &&
              p_y < o_y + o_h &&
@@ -637,7 +659,7 @@ class Game {
           const particle = this.particles[i];
           particle.x += particle.vx;
           particle.y += particle.vy;
-          particle.vy += 0.4;
+          particle.vy += 0.4; // Apply gravity to particles
           particle.life--;
 
           if (particle.life <= 0) {
@@ -650,26 +672,32 @@ class Game {
       this.gameRunning = false;
       this.currentGameState = 'gameOver';
       this.finalScoreDisplay.textContent = this.score;
-      this.updateScoreDisplay();
-      this.updateBestScoreDisplay();
+      this.updateScoreDisplay(); // Ensures best score is updated
       this.updateUIVisibility();
   }
 
-  gameLoop() {
+  gameLoop(timestamp) {
+      this.deltaTime = (timestamp - this.lastUpdateTime) / 1000; // Convert to seconds
+      this.lastUpdateTime = timestamp;
+
       if (this.currentGameState === 'playing' && this.gameRunning) {
-          this.update();
+          this.update(this.deltaTime);
       }
       this.draw();
-      requestAnimationFrame(() => this.gameLoop());
+      requestAnimationFrame((ts) => this.gameLoop(ts));
   }
 
-  update() {
+  update(deltaTime) {
       // Player animation
-      this.player.animFrame = (this.player.animFrame + this.player.animSpeed) % 4;
+      this.player.animFrame = (this.player.animFrame + this.player.animSpeed * deltaTime * 60) % 4; // Adjust speed with deltaTime
 
-      // Player physics
+      // Player physics (using deltaTime for smoother movement)
+      const gravity = 0.8 * deltaTime * 60; // Increased gravity, scaled by deltaTime
+      const jumpForce = -18 * deltaTime * 60; // Increased jump force, scaled by deltaTime
+      const duckDescent = 0.6 * deltaTime * 60; // Smoother duck descent, scaled by deltaTime
+
       if (this.player.jumping) {
-          this.player.velY += 0.6;
+          this.player.velY += gravity;
           this.player.y += this.player.velY;
 
           if (this.player.y >= this.groundY - this.player.height) {
@@ -677,27 +705,27 @@ class Game {
               this.player.jumping = false;
               this.player.grounded = true;
               this.player.velY = 0;
-              this.player.animFrame = 0;
+              this.player.animFrame = 0; // Reset anim frame on landing
           }
       }
 
       if (this.jumpRequested && this.player.grounded) {
-          this.player.velY = -14; // Increased for better obstacle clearance
+          this.player.velY = jumpForce;
           this.player.jumping = true;
           this.player.grounded = false;
           this.jumpRequested = false;
-          this.player.isDucking = false;
-          this.player.animFrame = 0;
+          this.player.isDucking = false; // Cannot duck mid-jump request
+          this.player.animFrame = 0; // Reset anim frame on jump start
       }
 
       // Allow ducking in air for faster descent
-      if (!this.player.grounded && this.player.isDucking) {
-          this.player.velY += 1.5; // Reduced for smoother descent
+      if (!this.player.grounded && this.player.isDucking && this.player.velY > 0) { // Only if falling
+          this.player.velY += duckDescent;
       }
 
       // Update clouds
       this.clouds.forEach(cloud => {
-          cloud.x -= cloud.speed;
+          cloud.x -= cloud.speed * deltaTime * 60; // Scale with deltaTime
           if (cloud.x + cloud.w < 0) {
               cloud.x = this.canvas.width + Math.random() * 100;
               cloud.y = 30 + Math.random() * (this.groundY / 3);
@@ -705,8 +733,8 @@ class Game {
       });
 
       // Update game elements
-      this.updateObstacles();
-      this.updateParticles();
+      this.updateObstacles(); // Obstacle movement already uses this.speed
+      this.updateParticles(); // Particles are self-contained
 
       // Update score - New scoring system
       this.distance += this.speed;
@@ -725,24 +753,18 @@ class Game {
           this.nextThemeToggleScore += 200; // Next toggle at +200 points
       }
 
-      // Gradual speed increase - balanced progression
-      if (this.score >= 50 && this.score < 100 && this.speed < 4.5) {
-          this.speed = Math.min(this.speed + 0.003, 4.5);
-      } else if (this.score >= 100 && this.score < 200 && this.speed < 5.5) {
-          this.speed = Math.min(this.speed + 0.003, 5.5);
-      } else if (this.score >= 200 && this.speed < 7) {
-          this.speed = Math.min(this.speed + 0.003, 7);
-      }
+      // Gradual speed increase - continuous progression
+      this.speed = Math.min(this.initialSpeed + (this.score * 0.01), this.maxSpeed); // Increase speed based on score
   }
 
   draw() {
-      // Clear canvas with white background
+      // Clear canvas with background color
       this.ctx.fillStyle = this._getColor('sky');
       this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
       // Draw ground with shadow
       this.ctx.fillStyle = this._getColor('groundShadow');
-      this.ctx.fillRect(0, this.groundY + 5, this.canvas.width, this.canvas.height - this.groundY - 5);
+      this.ctx.fillRect(0, this.groundY + (2*this.scale), this.canvas.width, this.canvas.height - this.groundY - (2*this.scale));
       this.ctx.fillStyle = this._getColor('ground');
       this.ctx.fillRect(0, this.groundY, this.canvas.width, this.canvas.height - this.groundY);
 
@@ -752,6 +774,7 @@ class Game {
           this.ctx.globalAlpha = cloud.opacity;
           this.ctx.fillStyle = this._getColor('cloud');
           this.ctx.beginPath();
+          // Simplified cloud drawing, can be more complex if desired
           this.ctx.arc(cloud.x, cloud.y, cloud.w * 0.3, 0, Math.PI * 2);
           this.ctx.arc(cloud.x + cloud.w * 0.3, cloud.y, cloud.w * 0.4, 0, Math.PI * 2);
           this.ctx.arc(cloud.x + cloud.w * 0.6, cloud.y, cloud.w * 0.3, 0, Math.PI * 2);
@@ -773,244 +796,242 @@ class Game {
           this.ctx.restore();
       });
 
-      // Draw player
-      this.drawPlayer();
+      // Draw player only if game is playing or over (not in character select)
+      if (this.currentGameState === 'playing' || this.currentGameState === 'gameOver') {
+        this.drawPlayer();
+      }
   }
 
+  // --- Pixel Art Drawing Functions (Simplified and Scaled) ---
   drawPlayer() {
       const p = this.player;
       const colors = this.isNightMode ? this.themeColors.night : this.themeColors.day;
       
       this.ctx.save();
+      this.ctx.imageSmoothingEnabled = false; // Disable smoothing for pixel art
       
-      // Disable smoothing for pixel art style
-      this.ctx.imageSmoothingEnabled = false;
-      
-      // Animation frame for walking cycle (0-3)
-      const walkFrame = Math.floor(p.animFrame) % 4;
-      
-      // Base positions
+      // Base positions for all drawing
       const baseX = p.x;
       const baseY = p.y;
       
-      // Pixel art rendering function
-      const drawPixel = (x, y, w = 2, h = 2, color) => {
+      // Pixel art rendering helper
+      const drawPixel = (x, y, w, h, color) => {
           this.ctx.fillStyle = color;
           this.ctx.fillRect(Math.floor(baseX + x), Math.floor(baseY + y), w, h);
       };
       
-      // Character scale (2x2 pixels for each "pixel")
-      const scale = 2;
-      
       if (p.isDucking) {
-          this.drawDuckingCharacter(drawPixel, colors, scale);
+          this.drawDuckingCharacter(drawPixel, colors, this.scale);
       } else if (p.jumping) {
-          this.drawJumpingCharacter(drawPixel, colors, scale);
+          this.drawJumpingCharacter(drawPixel, colors, this.scale);
       } else {
-          this.drawRunningCharacter(drawPixel, colors, scale, walkFrame);
+          this.drawRunningCharacter(drawPixel, colors, this.scale, Math.floor(p.animFrame) % 4);
       }
       
       this.ctx.restore();
   }
   
+  // Base pixel art size is 24x30, scaled by this.scale
   drawRunningCharacter(drawPixel, colors, scale, walkFrame) {
-      // TARBOUSH (Traditional Syrian cap) - Scaled down
-      drawPixel(6*scale, 1*scale, 10*scale, 5*scale, colors.playerTarboush);
-      drawPixel(8*scale, 0, 6*scale, 3*scale, colors.playerTarboush);
-      drawPixel(16*scale, 1*scale, 2*scale, 2*scale, colors.playerTarboushTassel);
+      // Tarboush
+      drawPixel(7*scale, 0*scale, 10*scale, 5*scale, colors.playerTarboush);
+      drawPixel(9*scale, -1*scale, 6*scale, 3*scale, colors.playerTarboush);
+      drawPixel(16*scale, 1*scale, 2*scale, 2*scale, colors.playerTarboushTassel); // Tassel
       
-      // HEAD & FACE (side profile) - Scaled down
-      drawPixel(6*scale, 6*scale, 8*scale, 6*scale, colors.playerSkin);
-      drawPixel(14*scale, 8*scale, 2*scale, 1*scale, colors.playerSkin);
-      drawPixel(11*scale, 8*scale, 1*scale, 1*scale, colors.playerBeard);
+      // Head/Face
+      drawPixel(7*scale, 5*scale, 8*scale, 6*scale, colors.playerSkin);
+      drawPixel(15*scale, 7*scale, 2*scale, 1*scale, colors.playerSkin); // Nose
+      drawPixel(12*scale, 7*scale, 1*scale, 1*scale, colors.playerBeard); // Eye (simple dot)
       
-      // BEARD & MUSTACHE - Scaled down
-      drawPixel(4*scale, 11*scale, 6*scale, 4*scale, colors.playerBeard);
-      drawPixel(8*scale, 10*scale, 4*scale, 2*scale, colors.playerBeard);
-      drawPixel(11*scale, 10*scale, 3*scale, 1*scale, colors.playerBeard);
+      // Beard/Mouth area
+      drawPixel(5*scale, 10*scale, 6*scale, 4*scale, colors.playerBeard);
+      drawPixel(9*scale, 9*scale, 4*scale, 2*scale, colors.playerBeard);
+      drawPixel(12*scale, 9*scale, 3*scale, 1*scale, colors.playerBeard);
       
-      // THOBE (Traditional robe) - Scaled down
-      drawPixel(3*scale, 15*scale, 12*scale, 16*scale, colors.playerThobe);
-      drawPixel(9*scale, 18*scale, 1*scale, 1*scale, colors.playerThobeDetails);
-      drawPixel(9*scale, 21*scale, 1*scale, 1*scale, colors.playerThobeDetails);
-      drawPixel(9*scale, 24*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      // Thobe (Body)
+      drawPixel(4*scale, 14*scale, 12*scale, 16*scale, colors.playerThobe);
+      drawPixel(10*scale, 17*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(10*scale, 20*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(10*scale, 23*scale, 1*scale, 1*scale, colors.playerThobeDetails);
       
-      // ARMS - Animated based on walk cycle, scaled down
-      const armSwing = walkFrame < 2 ? 0 : 1*scale;
-      const armSwing2 = walkFrame < 2 ? 1*scale : 0;
+      // Arms (Animation)
+      const armSwingX1 = (walkFrame === 0 || walkFrame === 2) ? 14*scale : 15*scale;
+      const armSwingY1 = (walkFrame === 0 || walkFrame === 2) ? 16*scale : 17*scale;
+      const armSwingX2 = (walkFrame === 0 || walkFrame === 2) ? 3*scale : 2*scale;
+      const armSwingY2 = (walkFrame === 0 || walkFrame === 2) ? 17*scale : 18*scale;
+
+      drawPixel(armSwingX1, armSwingY1, 3*scale, 6*scale, colors.playerSkin); // Right arm
+      drawPixel(armSwingX2, armSwingY2, 3*scale, 5*scale, colors.playerSkin); // Left arm
       
-      drawPixel(15*scale, 17*scale + armSwing, 3*scale, 6*scale, colors.playerSkin);
-      drawPixel(17*scale, 21*scale + armSwing, 3*scale, 3*scale, colors.playerSkin);
-      drawPixel(1*scale, 18*scale + armSwing2, 3*scale, 5*scale, colors.playerSkin);
-      
-      // LEGS - Animated walking cycle, scaled down
+      // Legs (Animation)
+      let rightLegX, leftLegX, rightFootX, leftFootX;
       let rightLegY, leftLegY, rightFootY, leftFootY;
-      
-      if (walkFrame === 0) {
-          rightLegY = 31*scale; leftLegY = 32*scale;
-          rightFootY = 37*scale; leftFootY = 38*scale;
-      } else if (walkFrame === 1) {
-          rightLegY = 31.5*scale; leftLegY = 31.5*scale;
-          rightFootY = 37.5*scale; leftFootY = 37.5*scale;
-      } else if (walkFrame === 2) {
-          rightLegY = 32*scale; leftLegY = 31*scale;
-          rightFootY = 38*scale; leftFootY = 37*scale;
-      } else {
-          rightLegY = 31.5*scale; leftLegY = 31.5*scale;
-          rightFootY = 37.5*scale; leftFootY = 37.5*scale;
+
+      if (walkFrame === 0) { // Right leg forward, left leg back
+          rightLegX = 11*scale; leftLegX = 8*scale;
+          rightLegY = 28*scale; leftLegY = 28*scale;
+          rightFootX = 10*scale; leftFootX = 7*scale;
+          rightFootY = 29*scale; leftFootY = 29*scale;
+      } else if (walkFrame === 1) { // Both legs mid-stride
+          rightLegX = 10*scale; leftLegX = 9*scale;
+          rightLegY = 28.5*scale; leftLegY = 28.5*scale;
+          rightFootX = 9*scale; leftFootX = 8*scale;
+          rightFootY = 29.5*scale; leftFootY = 29.5*scale;
+      } else if (walkFrame === 2) { // Left leg forward, right leg back
+          rightLegX = 8*scale; leftLegX = 11*scale;
+          rightLegY = 28*scale; leftLegY = 28*scale;
+          rightFootX = 7*scale; leftFootX = 10*scale;
+          rightFootY = 29*scale; leftFootY = 29*scale;
+      } else { // Both legs mid-stride (mirror of frame 1)
+          rightLegX = 9*scale; leftLegX = 10*scale;
+          rightLegY = 28.5*scale; leftLegY = 28.5*scale;
+          rightFootX = 8*scale; leftFootX = 9*scale;
+          rightFootY = 29.5*scale; leftFootY = 29.5*scale;
       }
       
-      drawPixel(11*scale, rightLegY, 2*scale, 6*scale, colors.playerSkin);
-      drawPixel(10*scale, rightFootY, 4*scale, 3*scale, colors.playerShoes);
-      drawPixel(8*scale, leftLegY, 2*scale, 6*scale, colors.playerSkin);
-      drawPixel(7*scale, leftFootY, 4*scale, 3*scale, colors.playerShoes);
+      drawPixel(rightLegX, rightLegY, 2*scale, 4*scale, colors.playerSkin);
+      drawPixel(rightFootX, rightFootY, 4*scale, 2*scale, colors.playerShoes);
+      drawPixel(leftLegX, leftLegY, 2*scale, 4*scale, colors.playerSkin);
+      drawPixel(leftFootX, leftFootY, 4*scale, 2*scale, colors.playerShoes);
   }
   
   drawJumpingCharacter(drawPixel, colors, scale) {
-      // TARBOUSH
-      drawPixel(6*scale, 1*scale, 10*scale, 5*scale, colors.playerTarboush);
-      drawPixel(8*scale, 0, 6*scale, 3*scale, colors.playerTarboush);
+      // Tarboush
+      drawPixel(7*scale, 0*scale, 10*scale, 5*scale, colors.playerTarboush);
+      drawPixel(9*scale, -1*scale, 6*scale, 3*scale, colors.playerTarboush);
       drawPixel(16*scale, 1*scale, 2*scale, 2*scale, colors.playerTarboushTassel);
       
-      // HEAD & FACE
-      drawPixel(6*scale, 6*scale, 8*scale, 6*scale, colors.playerSkin);
-      drawPixel(14*scale, 8*scale, 2*scale, 1*scale, colors.playerSkin);
-      drawPixel(11*scale, 8*scale, 1*scale, 1*scale, colors.playerBeard);
+      // Head/Face
+      drawPixel(7*scale, 5*scale, 8*scale, 6*scale, colors.playerSkin);
+      drawPixel(15*scale, 7*scale, 2*scale, 1*scale, colors.playerSkin);
+      drawPixel(12*scale, 7*scale, 1*scale, 1*scale, colors.playerBeard);
       
-      // BEARD
-      drawPixel(4*scale, 11*scale, 6*scale, 4*scale, colors.playerBeard);
-      drawPixel(8*scale, 10*scale, 4*scale, 2*scale, colors.playerBeard);
-      drawPixel(11*scale, 10*scale, 3*scale, 1*scale, colors.playerBeard);
+      // Beard/Mouth area
+      drawPixel(5*scale, 10*scale, 6*scale, 4*scale, colors.playerBeard);
+      drawPixel(9*scale, 9*scale, 4*scale, 2*scale, colors.playerBeard);
+      drawPixel(12*scale, 9*scale, 3*scale, 1*scale, colors.playerBeard);
       
-      // THOBE
-      drawPixel(3*scale, 15*scale, 12*scale, 16*scale, colors.playerThobe);
-      drawPixel(9*scale, 18*scale, 1*scale, 1*scale, colors.playerThobeDetails);
-      drawPixel(9*scale, 21*scale, 1*scale, 1*scale, colors.playerThobeDetails);
-      drawPixel(9*scale, 24*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      // Thobe
+      drawPixel(4*scale, 14*scale, 12*scale, 16*scale, colors.playerThobe);
+      drawPixel(10*scale, 17*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(10*scale, 20*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(10*scale, 23*scale, 1*scale, 1*scale, colors.playerThobeDetails);
       
-      // ARMS - Raised up for jumping, scaled down
-      drawPixel(15*scale, 14*scale, 3*scale, 5*scale, colors.playerSkin);
-      drawPixel(1*scale, 15*scale, 3*scale, 5*scale, colors.playerSkin);
+      // Arms (Tucked in)
+      drawPixel(15*scale, 15*scale, 3*scale, 4*scale, colors.playerSkin);
+      drawPixel(2*scale, 16*scale, 3*scale, 4*scale, colors.playerSkin);
       
-      // LEGS - Bent/tucked for jumping, scaled down
-      drawPixel(9*scale, 33*scale, 3*scale, 5*scale, colors.playerSkin);
-      drawPixel(6*scale, 35*scale, 3*scale, 5*scale, colors.playerSkin);
-      drawPixel(8*scale, 36*scale, 4*scale, 2*scale, colors.playerShoes);
-      drawPixel(5*scale, 38*scale, 4*scale, 2*scale, colors.playerShoes);
+      // Legs (Tucked in)
+      drawPixel(10*scale, 27*scale, 3*scale, 4*scale, colors.playerSkin);
+      drawPixel(7*scale, 28*scale, 3*scale, 4*scale, colors.playerSkin);
+      drawPixel(9*scale, 29*scale, 4*scale, 2*scale, colors.playerShoes);
+      drawPixel(6*scale, 30*scale, 4*scale, 2*scale, colors.playerShoes);
   }
   
   drawDuckingCharacter(drawPixel, colors, scale) {
-      // TARBOUSH - Lower due to ducking, scaled down
-      drawPixel(6*scale, 8*scale, 10*scale, 5*scale, colors.playerTarboush);
-      drawPixel(8*scale, 6*scale, 6*scale, 3*scale, colors.playerTarboush);
-      drawPixel(16*scale, 7*scale, 2*scale, 2*scale, colors.playerTarboushTassel);
+      // Tarboush (lower)
+      drawPixel(7*scale, 5*scale, 10*scale, 5*scale, colors.playerTarboush);
+      drawPixel(9*scale, 4*scale, 6*scale, 3*scale, colors.playerTarboush);
+      drawPixel(16*scale, 6*scale, 2*scale, 2*scale, colors.playerTarboushTassel);
       
-      // HEAD - Lower position, scaled down
-      drawPixel(6*scale, 13*scale, 8*scale, 6*scale, colors.playerSkin);
-      drawPixel(14*scale, 15*scale, 2*scale, 1*scale, colors.playerSkin);
-      drawPixel(11*scale, 15*scale, 1*scale, 1*scale, colors.playerBeard);
+      // Head/Face (lower)
+      drawPixel(7*scale, 10*scale, 8*scale, 6*scale, colors.playerSkin);
+      drawPixel(15*scale, 12*scale, 2*scale, 1*scale, colors.playerSkin);
+      drawPixel(12*scale, 12*scale, 1*scale, 1*scale, colors.playerBeard);
       
-      // BEARD - scaled down
-      drawPixel(4*scale, 18*scale, 6*scale, 4*scale, colors.playerBeard);
-      drawPixel(8*scale, 17*scale, 4*scale, 2*scale, colors.playerBeard);
-      drawPixel(11*scale, 17*scale, 3*scale, 1*scale, colors.playerBeard);
+      // Beard/Mouth area
+      drawPixel(5*scale, 15*scale, 6*scale, 4*scale, colors.playerBeard);
+      drawPixel(9*scale, 14*scale, 4*scale, 2*scale, colors.playerBeard);
+      drawPixel(12*scale, 14*scale, 3*scale, 1*scale, colors.playerBeard);
       
-      // THOBE - Compressed/crouched, scaled down
-      drawPixel(3*scale, 22*scale, 12*scale, 12*scale, colors.playerThobe);
-      drawPixel(9*scale, 25*scale, 1*scale, 1*scale, colors.playerThobeDetails);
-      drawPixel(9*scale, 28*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      // Thobe (Compressed)
+      drawPixel(4*scale, 19*scale, 12*scale, 9*scale, colors.playerThobe); // Shorter thobe
+      drawPixel(10*scale, 20*scale, 1*scale, 1*scale, colors.playerThobeDetails);
+      drawPixel(10*scale, 23*scale, 1*scale, 1*scale, colors.playerThobeDetails);
       
-      // ARMS - Down for ducking, scaled down
-      drawPixel(15*scale, 24*scale, 3*scale, 5*scale, colors.playerSkin);
-      drawPixel(1*scale, 25*scale, 3*scale, 5*scale, colors.playerSkin);
+      // Arms (Down)
+      drawPixel(15*scale, 20*scale, 3*scale, 5*scale, colors.playerSkin);
+      drawPixel(2*scale, 21*scale, 3*scale, 5*scale, colors.playerSkin);
       
-      // LEGS - Crouched position, scaled down
-      drawPixel(7*scale, 34*scale, 5*scale, 5*scale, colors.playerSkin);
-      drawPixel(6*scale, 37*scale, 7*scale, 3*scale, colors.playerShoes);
+      // Legs (Crouched)
+      drawPixel(8*scale, 26*scale, 5*scale, 4*scale, colors.playerSkin);
+      drawPixel(7*scale, 28*scale, 7*scale, 2*scale, colors.playerShoes);
   }
 
   drawObstacle(obs) {
       const colors = this.isNightMode ? this.themeColors.night : this.themeColors.day;
       this.ctx.save();
-      
-      // Disable smoothing for pixel art style
-      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.imageSmoothingEnabled = false; // Disable smoothing for pixel art
       
       switch (obs.type) {
           case 'cactus':
-              // Pixel art cactus - Syrian desert plant (scaled for shorter character)
+              // Base size of cactus pixel art: 12px wide, 20px tall (pre-scale)
               this.ctx.fillStyle = colors.obstacleGreen;
-              this.ctx.fillRect(obs.x + 6, obs.y, 6, obs.height);
-              this.ctx.fillRect(obs.x, obs.y + 12, 10, 5);
-              this.ctx.fillRect(obs.x, obs.y + 8, 5, 12);
-              this.ctx.fillRect(obs.x + 14, obs.y + 16, 5, 12);
-              this.ctx.fillRect(obs.x + 17, obs.y + 12, 6, 5);
+              this.ctx.fillRect(obs.x + 6 * this.scale, obs.y, 6 * this.scale, obs.height); // Main trunk
+              this.ctx.fillRect(obs.x + 0 * this.scale, obs.y + 12 * this.scale, 10 * this.scale, 5 * this.scale); // Left arm
+              this.ctx.fillRect(obs.x + 0 * this.scale, obs.y + 8 * this.scale, 5 * this.scale, 12 * this.scale);
+              this.ctx.fillRect(obs.x + 14 * this.scale, obs.y + 16 * this.scale, 5 * this.scale, 12 * this.scale); // Right arm
+              this.ctx.fillRect(obs.x + 17 * this.scale, obs.y + 12 * this.scale, 6 * this.scale, 5 * this.scale);
               this.ctx.fillStyle = colors.obstacleBlack;
+              // Spikes
               for(let i = 0; i < 3; i++) {
-                  this.ctx.fillRect(obs.x + 8, obs.y + 8 + i*8, 2, 2);
-                  this.ctx.fillRect(obs.x + 10, obs.y + 12 + i*8, 2, 2);
+                  this.ctx.fillRect(obs.x + 8 * this.scale, obs.y + 8 * this.scale + i * 8 * this.scale, 2 * this.scale, 2 * this.scale);
+                  this.ctx.fillRect(obs.x + 10 * this.scale, obs.y + 12 * this.scale + i * 8 * this.scale, 2 * this.scale, 2 * this.scale);
               }
               break;
               
           case 'rock':
-              // Pixel art rock formation (scaled for shorter character)
+              // Base size of rock pixel art: 15px wide, 10px tall (pre-scale)
               this.ctx.fillStyle = colors.obstacleGrey;
-              this.ctx.fillRect(obs.x, obs.y + obs.height - 6, obs.width, 6);
-              this.ctx.fillRect(obs.x + 3, obs.y + obs.height - 12, obs.width - 6, 6);
-              this.ctx.fillRect(obs.x + 6, obs.y, obs.width - 12, 6);
+              this.ctx.fillRect(obs.x, obs.y + obs.height - 6 * this.scale, obs.width, 6 * this.scale);
+              this.ctx.fillRect(obs.x + 3 * this.scale, obs.y + obs.height - 12 * this.scale, obs.width - 6 * this.scale, 6 * this.scale);
+              this.ctx.fillRect(obs.x + 6 * this.scale, obs.y, obs.width - 12 * this.scale, 6 * this.scale);
               this.ctx.fillStyle = colors.obstacleBlack;
-              this.ctx.fillRect(obs.x + obs.width - 3, obs.y + obs.height - 9, 3, 9);
-              this.ctx.fillRect(obs.x + obs.width - 6, obs.y + obs.height - 6, 3, 6);
+              this.ctx.fillRect(obs.x + obs.width - 3 * this.scale, obs.y + obs.height - 9 * this.scale, 3 * this.scale, 9 * this.scale);
+              this.ctx.fillRect(obs.x + obs.width - 6 * this.scale, obs.y + obs.height - 6 * this.scale, 3 * this.scale, 6 * this.scale);
               break;
               
           case 'bird':
-              // Pixel art flying bird (scaled for shorter character)
+              // Base size of bird pixel art: 18px wide, 10px tall (pre-scale)
               this.ctx.fillStyle = colors.obstacleBlack;
-              const wingFlap = Math.sin(this.player.animFrame * 3) > 0 ? 0 : 1;
+              const wingFlap = Math.sin(this.player.animFrame * 3) > 0 ? 0 : 1; // Animation based on player anim frame
               
-              this.ctx.fillRect(obs.x + 12, obs.y + 6, 8, 5);
-              this.ctx.fillRect(obs.x + 20, obs.y + 5, 5, 3);
-              this.ctx.fillRect(obs.x + 25, obs.y + 6, 2, 1);
+              this.ctx.fillRect(obs.x + 6 * this.scale, obs.y + 3 * this.scale, 8 * this.scale, 3 * this.scale); // Body
+              this.ctx.fillRect(obs.x + 14 * this.scale, obs.y + 2 * this.scale, 4 * this.scale, 2 * this.scale); // Head
+              this.ctx.fillRect(obs.x + 17 * this.scale, obs.y + 3 * this.scale, 1 * this.scale, 1 * this.scale); // Beak
               
-              if (wingFlap === 0) {
-                  this.ctx.fillRect(obs.x + 6, obs.y + 2, 10, 3);
-                  this.ctx.fillRect(obs.x + 16, obs.y + 3, 6, 3);
-                  this.ctx.fillRect(obs.x + 22, obs.y + 2, 6, 3);
-              } else {
-                  this.ctx.fillRect(obs.x + 6, obs.y + 10, 10, 3);
-                  this.ctx.fillRect(obs.x + 16, obs.y + 11, 6, 3);
-                  this.ctx.fillRect(obs.x + 22, obs.y + 10, 6, 3);
+              if (wingFlap === 0) { // Wings up
+                  this.ctx.fillRect(obs.x + 2 * this.scale, obs.y + 0 * this.scale, 10 * this.scale, 2 * this.scale);
+                  this.ctx.fillRect(obs.x + 12 * this.scale, obs.y + 1 * this.scale, 6 * this.scale, 2 * this.scale);
+              } else { // Wings down
+                  this.ctx.fillRect(obs.x + 2 * this.scale, obs.y + 6 * this.scale, 10 * this.scale, 2 * this.scale);
+                  this.ctx.fillRect(obs.x + 12 * this.scale, obs.y + 7 * this.scale, 6 * this.scale, 2 * this.scale);
               }
               
-              this.ctx.fillStyle = colors.playerSkin;
-              this.ctx.fillRect(obs.x + 21, obs.y + 6, 1, 1);
+              this.ctx.fillStyle = colors.playerSkin; // Eye color
+              this.ctx.fillRect(obs.x + 15 * this.scale, obs.y + 3 * this.scale, 1 * this.scale, 1 * this.scale);
               break;
               
           case 'missile':
-              // Pixel art missile - modern threat (scaled for shorter character)
+              // Base size of missile pixel art: 25px wide, 8px tall (pre-scale)
               this.ctx.fillStyle = colors.obstacleGrey;
-              this.ctx.fillRect(obs.x + 8, obs.y + 5, 32, 6);
+              this.ctx.fillRect(obs.x + 4 * this.scale, obs.y + 3 * this.scale, 20 * this.scale, 3 * this.scale); // Main body
               this.ctx.fillStyle = colors.obstacleBlack;
-              this.ctx.fillRect(obs.x + 40, obs.y + 3, 5, 3);
-              this.ctx.fillRect(obs.x + 45, obs.y + 5, 3, 3);
-              this.ctx.fillRect(obs.x + 48, obs.y + 6, 2, 3);
+              this.ctx.fillRect(obs.x + 24 * this.scale, obs.y + 2 * this.scale, 3 * this.scale, 2 * this.scale); // Nose cone
+              this.ctx.fillRect(obs.x + 27 * this.scale, obs.y + 3 * this.scale, 2 * this.scale, 2 * this.scale);
               
               this.ctx.fillStyle = colors.obstacleGrey;
-              this.ctx.fillRect(obs.x + 10, obs.y + 2, 5, 3);
-              this.ctx.fillRect(obs.x + 10, obs.y + 11, 5, 3);
+              this.ctx.fillRect(obs.x + 5 * this.scale, obs.y + 0 * this.scale, 3 * this.scale, 2 * this.scale); // Top fin
+              this.ctx.fillRect(obs.x + 5 * this.scale, obs.y + 6 * this.scale, 3 * this.scale, 2 * this.scale); // Bottom fin
               
-              // Flame trail - animated (scaled for shorter character)
+              // Flame trail - animated
               this.ctx.fillStyle = colors.obstacleMissileFlame;
-              const flameFrame = Math.floor(Date.now() * 0.01) % 3;
-              const flameLength = 12 + flameFrame * 2;
+              const flameFrame = Math.floor(Date.now() * 0.01 * this.speed) % 3; // Flame speed depends on game speed
+              const flameLength = (6 + flameFrame * 2) * this.scale;
               
-              this.ctx.fillRect(obs.x + 8 - flameLength, obs.y + 6, flameLength, 3);
-              this.ctx.fillRect(obs.x + 8 - flameLength + 2, obs.y + 5, flameLength - 3, 2);
-              this.ctx.fillRect(obs.x + 8 - flameLength + 2, obs.y + 9, flameLength - 3, 2);
-              
-              // Inner flame
-              this.ctx.fillStyle = '#FFD700';
-              this.ctx.fillRect(obs.x + 8 - flameLength/2, obs.y + 7, flameLength/2, 1);
+              this.ctx.fillRect(obs.x + 4 * this.scale - flameLength, obs.y + 3 * this.scale, flameLength, 3 * this.scale);
+              this.ctx.fillStyle = '#FFD700'; // Inner flame
+              this.ctx.fillRect(obs.x + 4 * this.scale - flameLength + 2 * this.scale, obs.y + 4 * this.scale, flameLength - 4 * this.scale, 1 * this.scale);
               break;
       }
       
