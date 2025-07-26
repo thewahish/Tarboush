@@ -15,41 +15,42 @@
     </div>
   </div>
 
-  <div class="game-container game-screen">
+  <div class="game-container">
     <canvas id="gameCanvas"></canvas>
-  </div>
 
-  <div id="characterSelectScreen" class="game-screen">
-    <div class="menu-content">
-      <h1>لحّق إذا بتلحق</h1>
-      <h2>اختر شخصيتك</h2>
-      <div class="character-grid"></div>
-      <button id="start-game-btn">ابدأ اللعب</button>
-      <p class="coming-soon-text">مزيد من الشخصيات قريباً</p>
+    <div id="ui-container" class="game-screen">
+      <div id="score">نقاط: 0 ليرة سوري</div>
     </div>
-  </div>
 
-  <div id="gameOver" class="game-screen">
-    <div id="gameOver-content">
-      <h2>انتهت اللعبة!</h2>
-      <p>النتيجة النهائية: <span id="finalScore">0</span></p>
-      <p>أفضل نتيجة: <span id="bestScore">0</span></p>
-      <button id="restartBtn">العب مرة أخرى</button>
+    <div id="gameOver" class="game-screen">
+      <div id="gameOver-content">
+        <h2>انتهت اللعبة!</h2>
+        <p>النتيجة النهائية: <span id="finalScore">0</span></p>
+        <p>أفضل نتيجة: <span id="bestScore">0</span></p>
+        <button id="restartBtn">العب مرة أخرى</button>
+      </div>
     </div>
-  </div>
 
-  <div id="ui-container" class="game-screen">
-    <div id="score">نقاط: 0 ليرة سوري</div>
-  </div>
+    <div id="characterSelectScreen" class="game-screen">
+      <div class="menu-content">
+        <h1>لحّق إذا بتلحق</h1>
+        <h2>اختر شخصيتك</h2>
+        <div class="character-grid"></div>
+        <button id="start-game-btn">ابدأ اللعب</button>
+        <p class="coming-soon-text">مزيد من الشخصيات قريباً</p>
+      </div>
+    </div>
 
-  <button id="jumpButton" class="action-button">نط</button>
-  <button id="duckButton" class="action-button">طخّي</button>
-  <div id="debuggerDisplay" class="game-screen">Debugger: Initializing...</div>
-  
-  <div id="orientation-warning" class="game-screen">
-    <div class="orientation-content">
-        <p class="rotate-icon">🔄</p>
-        <p>الرجاء تدوير جهازك إلى الوضع الأفقي للعب</p>
+    <button id="jumpButton" class="action-button">نط</button>
+    <button id="duckButton" class="action-button">طخّي</button>
+
+    <div id="debuggerDisplay" class="game-screen">Debugger: Initializing...</div>
+
+    <div id="orientation-warning" class="game-screen">
+      <div class="orientation-content">
+          <p class="rotate-icon">🔄</p>
+          <p>الرجاء تدوير جهازك إلى الوضع الأفقي للعب</p>
+      </div>
     </div>
   </div>
 
